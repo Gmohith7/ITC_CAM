@@ -19,9 +19,10 @@ class _DetectionState:
 
     def __init__(self):
         self._lock = threading.Lock()
-        self.label = "..."
+        self.label = "SCANNING"
         self.confidence = 0.0
         self.is_defect = False
+        self.scanning = True   # True until first OCR result arrives
         self.regions = []
         self.text = ""
 
@@ -30,33 +31,39 @@ class _DetectionState:
             self.label = label
             self.confidence = confidence
             self.is_defect = is_defect
+            self.scanning = False
             self.regions = regions
             self.text = text
 
     def snapshot(self):
         with self._lock:
-            return self.label, self.confidence, self.is_defect, self.regions[:], self.text
+            return (self.label, self.confidence, self.is_defect,
+                    self.scanning, self.regions[:], self.text)
 
 
 def _ocr_worker(camera: CameraCapture, detector: BatchCodeDetector,
                 alerts: AlertSystem, state: _DetectionState,
                 stop_event: threading.Event):
     """
-    Runs OCR continuously in its own thread.
-    Only processes a frame when confident (high-quality, non-blank).
-    Never blocks the display loop.
+    OCR runs in its own thread — never blocks the display loop.
+    Uses get_frame_ref() (zero copy) since it only reads the frame.
     """
     while not stop_event.is_set():
         try:
-            frame = camera.get_frame()
+            frame = camera.get_frame_ref()
+            if frame is None:
+                time.sleep(0.02)
+                continue
 
-            # Skip near-blank or very dark frames (camera still stabilising)
-            mean_brightness = np.mean(frame)
-            if mean_brightness < 8:
+            # Skip frames that are too dark (camera still stabilising)
+            if np.mean(frame) < 8:
                 time.sleep(0.05)
                 continue
 
-            label, confidence, is_defect, regions, text = detector.predict(frame)
+            # Work on a copy so the capture thread can replace _last_frame freely
+            frame_copy = frame.copy()
+
+            label, confidence, is_defect, regions, text = detector.predict(frame_copy)
             state.update(label, confidence, is_defect, regions, text)
 
             if is_defect:
@@ -87,12 +94,14 @@ def run(headless: bool = False):
 
     try:
         while True:
+            # One copy per display frame — used for drawing
             frame = camera.get_frame()
-            label, confidence, is_defect, regions, text = state.snapshot()
+            label, confidence, is_defect, scanning, regions, text = state.snapshot()
 
             annotated = draw_result(
-                frame.copy(),
+                frame,          # draw_result mutates in-place; frame is already a copy
                 label, confidence, is_defect,
+                scanning=scanning,
                 regions=regions,
                 ocr_text=text,
             )

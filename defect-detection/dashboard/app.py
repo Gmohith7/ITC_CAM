@@ -50,11 +50,11 @@ DASHBOARD_HTML = """
 def generate_frames():
     while True:
         frame = camera.get_frame()
-        label, confidence, is_defect, regions, text = state.snapshot()
+        label, confidence, is_defect, scanning, regions, text = state.snapshot()
 
         annotated = draw_result(
-            frame.copy(), label, confidence, is_defect,
-            regions=regions, ocr_text=text,
+            frame, label, confidence, is_defect,
+            scanning=scanning, regions=regions, ocr_text=text,
         )
 
         bgr = cv2.cvtColor(annotated, cv2.COLOR_RGB2BGR)

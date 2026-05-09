@@ -39,10 +39,9 @@ class CameraCapture:
         from picamera2 import Picamera2
         self._mode = "picamera2"
         self.cam = Picamera2()
-        # BGR888 avoids the channel-swap bug present in some Pi firmware builds;
-        # we do one explicit BGR→RGB conversion in the capture thread.
+        # RGB888 is what libcamera natively produces — no channel swap needed.
         cfg = self.cam.create_video_configuration(
-            main={"size": config.CAMERA_RESOLUTION, "format": "BGR888"},
+            main={"size": config.CAMERA_RESOLUTION, "format": "RGB888"},
             controls={"FrameRate": config.FRAME_RATE}
         )
         self.cam.configure(cfg)
@@ -82,9 +81,9 @@ class CameraCapture:
         while not self._stop_event.is_set():
             try:
                 if self._mode == "picamera2":
-                    # Captured as BGR888; convert to RGB so the whole pipeline is RGB.
-                    bgr = self.cam.capture_array()
-                    frame = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+                    # RGB888 format — capture_array() gives a 3-channel RGB array directly.
+                    # capture_array("main") skips an internal copy vs the default "main" path.
+                    frame = self.cam.capture_array("main")
                 else:
                     ret, bgr = self.cam.read()
                     if not ret:
@@ -98,14 +97,21 @@ class CameraCapture:
                 time.sleep(0.05)
 
     def get_frame(self) -> np.ndarray:
-        """Return the most recently captured frame as (H, W, 3) RGB uint8."""
+        """Return the most recently captured frame as (H, W, 3) RGB uint8.
+        Returns a copy so callers can mutate freely."""
         deadline = time.time() + 2.0
         while time.time() < deadline:
             with self._frame_lock:
                 if self._last_frame is not None:
                     return self._last_frame.copy()
-            time.sleep(0.005)
+            time.sleep(0.002)
         raise RuntimeError("[Camera] No frame available (timeout).")
+
+    def get_frame_ref(self) -> np.ndarray:
+        """Return a direct reference to the latest frame — zero copy.
+        Caller must NOT mutate it. Use only for read-only inference."""
+        with self._frame_lock:
+            return self._last_frame
 
     def release(self):
         self._stop_event.set()
