@@ -39,9 +39,10 @@ class CameraCapture:
         from picamera2 import Picamera2
         self._mode = "picamera2"
         self.cam = Picamera2()
-        # Use video configuration for maximum frame rate
+        # BGR888 avoids the channel-swap bug present in some Pi firmware builds;
+        # we do one explicit BGR→RGB conversion in the capture thread.
         cfg = self.cam.create_video_configuration(
-            main={"size": config.CAMERA_RESOLUTION, "format": "RGB888"},
+            main={"size": config.CAMERA_RESOLUTION, "format": "BGR888"},
             controls={"FrameRate": config.FRAME_RATE}
         )
         self.cam.configure(cfg)
@@ -81,13 +82,13 @@ class CameraCapture:
         while not self._stop_event.is_set():
             try:
                 if self._mode == "picamera2":
-                    # capture_array() returns RGB888 directly — no conversion needed
-                    frame = self.cam.capture_array()
+                    # Captured as BGR888; convert to RGB so the whole pipeline is RGB.
+                    bgr = self.cam.capture_array()
+                    frame = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
                 else:
                     ret, bgr = self.cam.read()
                     if not ret:
                         continue
-                    # Webcam delivers BGR — convert once to RGB
                     frame = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
 
                 with self._frame_lock:

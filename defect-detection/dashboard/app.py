@@ -6,19 +6,30 @@ import cv2
 from flask import Flask, Response, render_template_string
 import config
 from camera.capture import CameraCapture
-from preprocessing.preprocess import preprocess_frame, draw_result
-from model.inference import DefectInference
-from defect_logging.logger import log_detection
+from preprocessing.preprocess import draw_result
+from model.inference import BatchCodeDetector
+from alerts.alert import AlertSystem
+from detection.detector import _DetectionState, _ocr_worker
+import threading
 
 app = Flask(__name__)
 camera = CameraCapture()
-model = DefectInference()
+detector = BatchCodeDetector()
+alerts = AlertSystem()
+state = _DetectionState()
+_stop = threading.Event()
+
+threading.Thread(
+    target=_ocr_worker,
+    args=(camera, detector, alerts, state, _stop),
+    daemon=True,
+).start()
 
 DASHBOARD_HTML = """
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Defect Detection Dashboard</title>
+  <title>Batch Code Detector</title>
   <meta http-equiv="refresh" content="0">
   <style>
     body { background:#111; color:#eee; font-family:sans-serif; text-align:center; padding:20px; }
@@ -28,9 +39,9 @@ DASHBOARD_HTML = """
   </style>
 </head>
 <body>
-  <h1>Defect Detection Live Feed</h1>
+  <h1>Batch Code Detector &mdash; Live Feed</h1>
   <img src="/video_feed" alt="Live feed">
-  <p class="sub">Raspberry Pi 5 &mdash; Camera Module 3 &mdash; MobileNetV2</p>
+  <p class="sub">Raspberry Pi 5 &mdash; Camera Module 3</p>
 </body>
 </html>
 """
@@ -39,12 +50,12 @@ DASHBOARD_HTML = """
 def generate_frames():
     while True:
         frame = camera.get_frame()
-        tensor = preprocess_frame(frame)
-        label, confidence, is_defect = model.predict(tensor)
-        annotated = draw_result(frame.copy(), label, confidence, is_defect)
+        label, confidence, is_defect, regions, text = state.snapshot()
 
-        if is_defect:
-            log_detection(frame, label, confidence)
+        annotated = draw_result(
+            frame.copy(), label, confidence, is_defect,
+            regions=regions, ocr_text=text,
+        )
 
         bgr = cv2.cvtColor(annotated, cv2.COLOR_RGB2BGR)
         success, buffer = cv2.imencode('.jpg', bgr, [cv2.IMWRITE_JPEG_QUALITY, 80])

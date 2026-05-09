@@ -81,8 +81,7 @@ def test_log_detection_creates_csv(tmp_path, monkeypatch):
     import importlib
     import defect_logging.logger as lg_mod
     importlib.reload(lg_mod)
-    frame = np.zeros((224, 224, 3), dtype=np.uint8)
-    lg_mod.log_detection(frame, "DEFECT", 0.0)
+    lg_mod.log_detection("DEFECT", 0.0)
     csv_path = tmp_path / "detections.csv"
     assert csv_path.exists()
     lines = csv_path.read_text().splitlines()

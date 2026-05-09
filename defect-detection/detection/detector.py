@@ -1,7 +1,9 @@
 import sys
 import os
 import time
+import threading
 import cv2
+import numpy as np
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -10,46 +12,93 @@ from camera.capture import CameraCapture
 from preprocessing.preprocess import draw_result
 from model.inference import BatchCodeDetector
 from alerts.alert import AlertSystem
-from defect_logging.logger import log_detection
+
+
+class _DetectionState:
+    """Shared state between the display loop and the OCR worker thread."""
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self.label = "..."
+        self.confidence = 0.0
+        self.is_defect = False
+        self.regions = []
+        self.text = ""
+
+    def update(self, label, confidence, is_defect, regions, text):
+        with self._lock:
+            self.label = label
+            self.confidence = confidence
+            self.is_defect = is_defect
+            self.regions = regions
+            self.text = text
+
+    def snapshot(self):
+        with self._lock:
+            return self.label, self.confidence, self.is_defect, self.regions[:], self.text
+
+
+def _ocr_worker(camera: CameraCapture, detector: BatchCodeDetector,
+                alerts: AlertSystem, state: _DetectionState,
+                stop_event: threading.Event):
+    """
+    Runs OCR continuously in its own thread.
+    Only processes a frame when confident (high-quality, non-blank).
+    Never blocks the display loop.
+    """
+    while not stop_event.is_set():
+        try:
+            frame = camera.get_frame()
+
+            # Skip near-blank or very dark frames (camera still stabilising)
+            mean_brightness = np.mean(frame)
+            if mean_brightness < 8:
+                time.sleep(0.05)
+                continue
+
+            label, confidence, is_defect, regions, text = detector.predict(frame)
+            state.update(label, confidence, is_defect, regions, text)
+
+            if is_defect:
+                alerts.trigger()
+            else:
+                alerts.clear()
+
+        except Exception as e:
+            print(f"[OCR worker] {e}")
+            time.sleep(0.1)
 
 
 def run(headless: bool = False):
     camera = CameraCapture()
     detector = BatchCodeDetector()
     alerts = AlertSystem()
+    state = _DetectionState()
+    stop_event = threading.Event()
+
+    ocr_thread = threading.Thread(
+        target=_ocr_worker,
+        args=(camera, detector, alerts, state, stop_event),
+        daemon=True,
+    )
+    ocr_thread.start()
 
     print("[Detector] Starting. Press 'q' or Ctrl+C to stop.")
-
-    # Display every frame; run detection at FRAME_RATE
-    detect_interval = 1.0 / config.FRAME_RATE
-    last_detect = 0.0
-    last_label, last_is_defect, last_regions, last_text = "...", False, [], ""
 
     try:
         while True:
             frame = camera.get_frame()
-            now = time.time()
-
-            # Run OCR detection at the configured rate (not every display frame)
-            if now - last_detect >= detect_interval:
-                last_label, _, last_is_defect, last_regions, last_text = detector.predict(frame)
-                last_detect = now
-
-                if last_is_defect:
-                    alerts.trigger()
-                    log_detection(frame, last_label, 1.0)
-                else:
-                    alerts.clear()
+            label, confidence, is_defect, regions, text = state.snapshot()
 
             annotated = draw_result(
                 frame.copy(),
-                last_label, 1.0, last_is_defect,
-                regions=last_regions,
-                ocr_text=last_text,
+                label, confidence, is_defect,
+                regions=regions,
+                ocr_text=text,
             )
 
             if not headless:
-                # Convert RGB→BGR only for cv2.imshow
+                # Pipeline is RGB; cv2.imshow needs BGR
                 bgr = cv2.cvtColor(annotated, cv2.COLOR_RGB2BGR)
                 cv2.imshow("Batch Code Detector", bgr)
                 if cv2.waitKey(1) & 0xFF == ord('q'):
@@ -58,6 +107,8 @@ def run(headless: bool = False):
     except KeyboardInterrupt:
         print("[Detector] Stopped.")
     finally:
+        stop_event.set()
+        ocr_thread.join(timeout=3.0)
         camera.release()
         if not headless:
             cv2.destroyAllWindows()
