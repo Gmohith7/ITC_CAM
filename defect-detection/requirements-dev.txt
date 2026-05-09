@@ -1,0 +1,6 @@
+# Development on PC — testing and linting only
+-r requirements.txt
+
+pytest
+pytest-cov
+ruff

@@ -1,0 +1,12 @@
+# Runtime — runs on both dev machine and Pi
+numpy
+opencv-python
+Pillow
+flask
+python-dotenv
+
+# Pi only (cannot pip install on Pi — see requirements-pi.txt for instructions):
+# picamera2     -> sudo apt install python3-picamera2
+# tflite-runtime -> pip install tflite-runtime
+# gpiozero      -> pip install gpiozero  (uses lgpio backend on Pi 5)
+# lgpio         -> sudo apt install python3-lgpio lgpio
