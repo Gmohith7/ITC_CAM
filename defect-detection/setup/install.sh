@@ -12,7 +12,8 @@ sudo apt install -y \
     python3-picamera2 \
     python3-lgpio lgpio \
     libatlas-base-dev \
-    libjpeg-dev
+    libjpeg-dev \
+    tesseract-ocr
 
 # NOTE: RPi.GPIO is intentionally NOT installed — it does not support Pi 5 (RP1 chip).
 # NOTE: python3-opencv from apt is fine for display; pip version used in venv for latest features.
@@ -27,7 +28,7 @@ echo "[Setup] Upgrading pip..."
 python3 -m pip install --upgrade pip
 
 echo "[Setup] Installing pip packages..."
-pip install numpy Pillow flask python-dotenv gpiozero opencv-python
+pip install numpy Pillow flask python-dotenv pytesseract gpiozero opencv-python
 
 echo "[Setup] Installing tflite-runtime from PyPI (NOT apt — apt version is outdated)..."
 pip install tflite-runtime

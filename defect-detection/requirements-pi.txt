@@ -2,9 +2,10 @@
 #
 # Step 1 — system packages:
 #   sudo apt install -y python3-picamera2 python3-dev \
-#       libatlas-base-dev libjpeg-dev python3-lgpio lgpio
+#       python3-lgpio lgpio tesseract-ocr \
+#       libatlas-base-dev libjpeg-dev
 #
-# Step 2 — venv (inherit apt packages for picamera2/libcamera bindings):
+# Step 2 — venv (--system-site-packages exposes picamera2/libcamera to the venv):
 #   python3 -m venv --system-site-packages venv
 #   source venv/bin/activate
 #   pip install -r requirements-pi.txt
@@ -14,11 +15,7 @@ opencv-python
 Pillow
 flask
 python-dotenv
+pytesseract
 gpiozero
-tflite-runtime
 
-# NOT included — incompatible with Pi 5 (RP1 chip):
-# RPi.GPIO
-#
-# NOT included — training only, run on PC/Colab:
-# tensorflow, torch, onnx
+# RPi.GPIO is NOT listed — incompatible with Pi 5 (RP1 chip).

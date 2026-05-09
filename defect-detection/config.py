@@ -5,19 +5,12 @@ load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 
 # --- Camera ---
 CAMERA_RESOLUTION = (1920, 1080)
-INFERENCE_SIZE = (224, 224)
-FRAME_RATE = int(os.getenv("FRAME_RATE", "10"))
+FRAME_RATE = int(os.getenv("FRAME_RATE", "30"))
 
-# --- Model ---
-MODEL_PATH = os.getenv(
-    "MODEL_PATH",
-    os.path.join(os.path.dirname(__file__), "model", "model.tflite")
-)
-LABELS_PATH = os.getenv(
-    "LABELS_PATH",
-    os.path.join(os.path.dirname(__file__), "model", "labels.txt")
-)
-CONFIDENCE_THRESHOLD = float(os.getenv("CONFIDENCE_THRESHOLD", "0.75"))
+# --- Tesseract OCR ---
+# On Windows, point to the Tesseract install location.
+# On Linux/Pi it is found automatically via PATH.
+TESSERACT_CMD = os.getenv("TESSERACT_CMD", r"C:\Program Files\Tesseract-OCR\tesseract.exe")
 
 # --- Logging ---
 LOG_DIR = os.getenv(

@@ -11,47 +11,66 @@ import pytest
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-# ── Preprocessing ────────────────────────────────────────────────────────────
+# ── draw_result overlay ───────────────────────────────────────────────────────
 
-def test_preprocess_output_shape():
-    from preprocessing.preprocess import preprocess_frame
-    import config
-    dummy = np.random.randint(0, 255, (480, 640, 3), dtype=np.uint8)
-    result = preprocess_frame(dummy)
-    h, w = config.INFERENCE_SIZE
-    assert result.shape == (1, h, w, 3), f"Unexpected shape: {result.shape}"
-
-
-def test_preprocess_normalisation_range():
-    from preprocessing.preprocess import preprocess_frame
-    dummy = np.full((480, 640, 3), 128, dtype=np.uint8)
-    result = preprocess_frame(dummy)
-    assert result.min() >= 0.0
-    assert result.max() <= 1.0
-
-
-def test_draw_result_does_not_crash():
+def test_draw_result_ok():
     from preprocessing.preprocess import draw_result
     frame = np.zeros((480, 640, 3), dtype=np.uint8)
-    out = draw_result(frame.copy(), "OK", 0.95, defect=False)
+    out = draw_result(frame.copy(), "OK", 0.80, defect=False)
     assert out.shape == frame.shape
 
-    out_defect = draw_result(frame.copy(), "DEFECT", 0.88, defect=True)
-    assert out_defect.shape == frame.shape
+
+def test_draw_result_defect():
+    from preprocessing.preprocess import draw_result
+    frame = np.zeros((480, 640, 3), dtype=np.uint8)
+    out = draw_result(frame.copy(), "DEFECT", 0.0, defect=True,
+                      regions=[(10, 10, 100, 50)], ocr_text="11:05 04A11")
+    assert out.shape == frame.shape
 
 
-# ── Inference (dummy mode) ────────────────────────────────────────────────────
+# ── Batch code detector ───────────────────────────────────────────────────────
 
-def test_inference_dummy_returns_valid_output():
-    import config
-    config.MODEL_PATH = "nonexistent_model.tflite"
-    from model.inference import DefectInference
-    inf = DefectInference()
-    dummy_tensor = np.random.rand(1, 224, 224, 3).astype(np.float32)
-    label, confidence, is_defect = inf.predict(dummy_tensor)
-    assert label in inf.labels
+def test_detector_blank_frame_is_defect():
+    from model.inference import BatchCodeDetector
+    det = BatchCodeDetector()
+    blank = np.zeros((480, 640, 3), dtype=np.uint8)
+    label, confidence, is_defect, regions, text = det.predict(blank)
+    assert label == "DEFECT"
+    assert is_defect is True
+    assert confidence == 0.0   # DEFECT always returns 0.0
+
+
+def test_detector_white_frame_finds_region():
+    from model.inference import BatchCodeDetector
+    det = BatchCodeDetector()
+    white = np.full((480, 640, 3), 255, dtype=np.uint8)
+    label, confidence, is_defect, regions, text = det.predict(white)
+    assert isinstance(label, str)
+    assert isinstance(confidence, float)
     assert 0.0 <= confidence <= 1.0
     assert isinstance(is_defect, bool)
+
+
+def test_confidence_score_range():
+    from model.inference import _score_text
+    # Empty / irrelevant text
+    assert _score_text("") == 0.0
+    assert _score_text("random unrelated text") == 0.0
+
+    # Single date alone is enough to pass the threshold
+    assert _score_text("28/09/25") >= 0.35
+
+    # Two dates (PKD + USE BY) is strong evidence
+    assert _score_text("24/10/25\n21/04/26") >= 0.60
+
+    # Keyword + date is strong
+    assert _score_text("Batch No.\n24/10/25") >= 0.50
+
+    # Full realistic sticker text scores high
+    assert _score_text("Batch No.:\n14:47\n28/09/25\n24/06/26\n44.00/(0.64)") >= 0.80
+
+    # Score never exceeds 1.0
+    assert _score_text("Batch No. PKD Use By\n28/09/25\n24/06/26\n14:47\n44.00/(0.64)") <= 1.0
 
 
 # ── Logging ───────────────────────────────────────────────────────────────────
@@ -59,15 +78,11 @@ def test_inference_dummy_returns_valid_output():
 def test_log_detection_creates_csv(tmp_path, monkeypatch):
     import config
     monkeypatch.setattr(config, "LOG_DIR", str(tmp_path))
-
-    # Re-import after patching so module-level init uses tmp_path
     import importlib
     import defect_logging.logger as lg_mod
     importlib.reload(lg_mod)
-
     frame = np.zeros((224, 224, 3), dtype=np.uint8)
-    lg_mod.log_detection(frame, "DEFECT", 0.92)
-
+    lg_mod.log_detection(frame, "DEFECT", 0.0)
     csv_path = tmp_path / "detections.csv"
     assert csv_path.exists()
     lines = csv_path.read_text().splitlines()
@@ -88,5 +103,5 @@ def test_alert_no_crash_without_gpio():
 def test_config_values():
     import config
     assert config.FRAME_RATE > 0
-    assert 0.0 < config.CONFIDENCE_THRESHOLD <= 1.0
-    assert len(config.INFERENCE_SIZE) == 2
+    assert isinstance(config.TESSERACT_CMD, str)
+    assert isinstance(config.LOG_DIR, str)

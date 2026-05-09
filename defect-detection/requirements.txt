@@ -4,9 +4,10 @@ opencv-python
 Pillow
 flask
 python-dotenv
+pytesseract
 
-# Pi only (cannot pip install on Pi — see requirements-pi.txt for instructions):
-# picamera2     -> sudo apt install python3-picamera2
-# tflite-runtime -> pip install tflite-runtime
-# gpiozero      -> pip install gpiozero  (uses lgpio backend on Pi 5)
-# lgpio         -> sudo apt install python3-lgpio lgpio
+# Pi only (install via apt/pip as noted in requirements-pi.txt):
+# picamera2  -> sudo apt install python3-picamera2
+# gpiozero   -> pip install gpiozero
+# lgpio      -> sudo apt install python3-lgpio lgpio
+# tesseract  -> sudo apt install tesseract-ocr

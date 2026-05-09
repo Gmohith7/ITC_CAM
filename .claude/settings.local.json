@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python -m venv venv)",
+      "PowerShell(& \"e:\\\\SEM - 8\\\\ITC - cam\\\\defect-detection\\\\venv\\\\Scripts\\\\python.exe\" -m pip install pytesseract; Write-Host \"Exit: $LASTEXITCODE\")",
+      "PowerShell(python -m venv \"e:\\\\SEM - 8\\\\ITC - cam\\\\defect-detection\\\\venv\"; Write-Host \"Exit: $LASTEXITCODE\")"
+    ]
+  }
+}

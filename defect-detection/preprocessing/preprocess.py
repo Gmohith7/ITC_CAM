@@ -1,24 +1,40 @@
 import cv2
 import numpy as np
-import config
 
 
-def preprocess_frame(frame: np.ndarray) -> np.ndarray:
+def draw_result(
+    frame: np.ndarray,
+    label: str,
+    confidence: float,
+    defect: bool = False,
+    regions: list = None,
+    ocr_text: str = "",
+) -> np.ndarray:
     """
-    Resize to INFERENCE_SIZE, normalise to [0, 1], add batch dim.
-    Input:  (H, W, 3) uint8 RGB
-    Output: (1, H, W, 3) float32
+    Overlay detection result on the frame (RGB in, RGB out).
+    Green border = batch code present (OK).
+    Red border   = batch code missing (DEFECT).
+    Blue boxes   = detected label regions.
     """
-    resized = cv2.resize(frame, config.INFERENCE_SIZE)
-    normalised = resized.astype(np.float32) / 255.0
-    return np.expand_dims(normalised, axis=0)
+    border_color = (255, 0, 0) if defect else (0, 200, 0)
+    text_color   = (255, 0, 0) if defect else (0, 200, 0)
+    region_color = (0, 120, 255)
 
+    h, w = frame.shape[:2]
 
-def draw_result(frame: np.ndarray, label: str, confidence: float, defect: bool = False) -> np.ndarray:
-    """Overlay prediction label and confidence onto the frame (in-place copy)."""
-    color = (0, 0, 255) if defect else (0, 255, 0)
-    text = f"{label}: {confidence:.2f}"
-    cv2.putText(frame, text, (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1.2, color, 2)
-    border_color = (0, 0, 255) if defect else (0, 255, 0)
-    cv2.rectangle(frame, (0, 0), (frame.shape[1] - 1, frame.shape[0] - 1), border_color, 4)
+    cv2.rectangle(frame, (0, 0), (w - 1, h - 1), border_color, 6)
+
+    status = f"{'NO BATCH CODE' if defect else 'BATCH CODE OK'}  {confidence:.0%}"
+    cv2.putText(frame, status, (20, 50),
+                cv2.FONT_HERSHEY_SIMPLEX, 1.4, text_color, 3, cv2.LINE_AA)
+
+    if ocr_text:
+        first_line = ocr_text.split('\n')[0][:60]
+        cv2.putText(frame, first_line, (20, 95),
+                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (220, 220, 220), 2, cv2.LINE_AA)
+
+    if regions:
+        for (x, y, rw, rh) in regions:
+            cv2.rectangle(frame, (x, y), (x + rw, y + rh), region_color, 2)
+
     return frame
