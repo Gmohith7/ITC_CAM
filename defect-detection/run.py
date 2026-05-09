@@ -8,7 +8,6 @@ Convenience launcher. Run from the project root:
 """
 
 import sys
-import os
 
 
 def main():
