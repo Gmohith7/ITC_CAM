@@ -18,6 +18,8 @@ def draw_result(
     Red border    = batch code missing (DEFECT).
     Blue boxes    = detected label regions.
     """
+    if frame.ndim == 2:
+        frame = cv2.cvtColor(frame, cv2.COLOR_GRAY2RGB)
     h, w = frame.shape[:2]
 
     if scanning:

@@ -6,6 +6,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 # --- Camera ---
 CAMERA_RESOLUTION = (1920, 1080)
 FRAME_RATE = int(os.getenv("FRAME_RATE", "30"))
+GRAYSCALE_MODE = os.getenv("GRAYSCALE_MODE", "true").lower() == "true"
 
 # --- Tesseract OCR ---
 # On Windows, point to the Tesseract install location.

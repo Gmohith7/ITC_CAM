@@ -36,7 +36,8 @@ _PAT_TIME = re.compile(r'\b\d{1,2}[: ]\d{2}\b')
 
 # Label keywords that appear next to batch info
 _PAT_KEYWORDS = re.compile(
-    r'\b(batch\s*no|pkd|use\s*by|mfd|packed\s*on|manufacturing|best\s*before)\b',
+    r'\b(batch\s*no|batch\s*code|lot\s*no|lot|pkd|use\s*by|mfd|mfg|packed\s*on|'
+    r'manufacturing|best\s*before|expiry|exp)\b',
     re.IGNORECASE
 )
 
@@ -52,6 +53,9 @@ _EVIDENCE = [
 ]
 # Minimum score to declare batch code present
 _THRESHOLD = 0.35
+
+_OCR_PSMS = (6, 7, 11, 3)
+_OCR_MIN_HEIGHT = 140
 
 
 # ── Scoring ──────────────────────────────────────────────────────────────────
@@ -71,18 +75,28 @@ def _score_text(text: str) -> float:
 
 # ── Image preprocessing ───────────────────────────────────────────────────────
 
+def _to_gray(frame: np.ndarray) -> np.ndarray:
+    if frame.ndim == 2:
+        return frame
+    if frame.shape[2] == 1:
+        return frame[:, :, 0]
+    return cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+
 def _preprocessing_variants(gray: np.ndarray):
     """
     Yield binarised grayscale images to try for OCR.
     Covers dark-on-light, light-on-dark, and low-contrast text.
     """
     h, w = gray.shape
-    if h < 120:
-        scale = 120 / h
-        gray = cv2.resize(gray, (int(w * scale), 120), interpolation=cv2.INTER_CUBIC)
+    if h < _OCR_MIN_HEIGHT:
+        scale = _OCR_MIN_HEIGHT / h
+        gray = cv2.resize(gray, (int(w * scale), _OCR_MIN_HEIGHT), interpolation=cv2.INTER_CUBIC)
+
+    blur = cv2.GaussianBlur(gray, (3, 3), 0)
+    sharp = cv2.addWeighted(gray, 1.6, blur, -0.6, 0)
 
     # 1. Otsu — dark text on light background (sticker labels)
-    _, otsu = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
+    _, otsu = cv2.threshold(sharp, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     yield otsu
 
     # 2. Inverted Otsu — light/gold text on dark background (direct-print packaging)
@@ -97,24 +111,35 @@ def _preprocessing_variants(gray: np.ndarray):
     # 4. Inverted CLAHE — low-contrast light-on-dark
     yield cv2.bitwise_not(clahe_bin)
 
+    # 5. Adaptive threshold — uneven lighting
+    adapt = cv2.adaptiveThreshold(
+        sharp, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C,
+        cv2.THRESH_BINARY, 31, 2
+    )
+    yield adapt
 
-def _ocr_best(image_rgb: np.ndarray, psm: int) -> tuple[str, float]:
+    # 6. Inverted adaptive threshold
+    yield cv2.bitwise_not(adapt)
+
+
+def _ocr_best(image: np.ndarray, psm_list: tuple[int, ...]) -> tuple[str, float]:
     """
     Run Tesseract across all preprocessing variants.
     Return (text, score) of the variant with the highest evidence score.
     """
     import pytesseract
-    gray = cv2.cvtColor(image_rgb, cv2.COLOR_RGB2GRAY)
-    cfg = f'--psm {psm} --oem 3'
+    gray = _to_gray(image)
     best_text, best_score = "", 0.0
     for variant in _preprocessing_variants(gray):
-        try:
-            text = pytesseract.image_to_string(variant, config=cfg)
-            score = _score_text(text)
-            if score > best_score:
-                best_score, best_text = score, text
-        except Exception:
-            continue
+        for psm in psm_list:
+            cfg = f'--psm {psm} --oem 3'
+            try:
+                text = pytesseract.image_to_string(variant, config=cfg)
+                score = _score_text(text)
+                if score > best_score:
+                    best_score, best_text = score, text
+            except Exception:
+                continue
     return best_text, best_score
 
 
@@ -125,7 +150,7 @@ def _find_white_label_regions(frame_rgb: np.ndarray) -> list:
     Detect white/light rectangular sticker labels on coloured packaging.
     Returns list of (x, y, w, h) sorted by area descending.
     """
-    gray = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2GRAY)
+    gray = _to_gray(frame_rgb)
     _, thresh = cv2.threshold(gray, 185, 255, cv2.THRESH_BINARY)
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (28, 14))
     closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
@@ -194,7 +219,7 @@ class BatchCodeDetector:
         # ── Stage 1: OCR white sticker regions ──────────────────────────────
         for (x, y, w, h) in regions:
             crop = frame_rgb[y:y+h, x:x+w]
-            text, score = _ocr_best(crop, psm=6)
+            text, score = _ocr_best(crop, _OCR_PSMS)
             if score > best_score:
                 best_score, best_text = score, text
             if score >= _THRESHOLD:
@@ -210,7 +235,7 @@ class BatchCodeDetector:
                            (int(w_img * scale), int(h_img * scale)),
                            interpolation=cv2.INTER_AREA) if scale < 1.0 else frame_rgb
 
-        full_text, full_score = _ocr_best(small, psm=3)
+        full_text, full_score = _ocr_best(small, _OCR_PSMS)
         if full_score > best_score:
             best_score, best_text = full_score, full_text
 

@@ -39,9 +39,9 @@ class CameraCapture:
         from picamera2 import Picamera2
         self._mode = "picamera2"
         self.cam = Picamera2()
-        # RGB888 is what libcamera natively produces — no channel swap needed.
+        # Request BGR to align with OpenCV, then convert as needed for the pipeline.
         cfg = self.cam.create_video_configuration(
-            main={"size": config.CAMERA_RESOLUTION, "format": "RGB888"},
+            main={"size": config.CAMERA_RESOLUTION, "format": "BGR888"},
             controls={"FrameRate": config.FRAME_RATE}
         )
         self.cam.configure(cfg)
@@ -74,21 +74,37 @@ class CameraCapture:
                 print(f"[Camera] Webcam {idx} initialised at {config.FRAME_RATE} fps.")
                 return
             cap.release()
-        raise RuntimeError("Cannot open any webcam.")
+        
+        print(f"[Camera] Cannot open any webcam. Falling back to dummy video stream.")
+        self._mode = "dummy"
 
     def _frame_thread(self):
         """Capture frames as fast as the hardware allows; keep only the latest."""
         while not self._stop_event.is_set():
             try:
                 if self._mode == "picamera2":
-                    # RGB888 format — capture_array() gives a 3-channel RGB array directly.
                     # capture_array("main") skips an internal copy vs the default "main" path.
                     frame = self.cam.capture_array("main")
-                else:
+                    if config.GRAYSCALE_MODE:
+                        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+                    else:
+                        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                elif self._mode == "webcam":
                     ret, bgr = self.cam.read()
                     if not ret:
                         continue
-                    frame = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+                    if config.GRAYSCALE_MODE:
+                        frame = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+                    else:
+                        frame = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+                elif self._mode == "dummy":
+                    if config.GRAYSCALE_MODE:
+                        frame = np.random.randint(0, 256, (config.CAMERA_RESOLUTION[1], config.CAMERA_RESOLUTION[0]), dtype=np.uint8)
+                        cv2.putText(frame, "DUMMY MODE (NO WEBCAM)", (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 3, 255, 4)
+                    else:
+                        frame = np.random.randint(0, 256, (config.CAMERA_RESOLUTION[1], config.CAMERA_RESOLUTION[0], 3), dtype=np.uint8)
+                        cv2.putText(frame, "DUMMY MODE (NO WEBCAM)", (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 3, (255, 0, 0), 4)
+                    time.sleep(1.0 / config.FRAME_RATE)
 
                 with self._frame_lock:
                     self._last_frame = frame
