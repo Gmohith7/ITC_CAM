@@ -9,19 +9,41 @@ FRAME_RATE = int(os.getenv("FRAME_RATE", "30"))
 GRAYSCALE_MODE = os.getenv("GRAYSCALE_MODE", "true").lower() == "true"
 
 # --- Tesseract OCR ---
-# On Windows, point to the Tesseract install location.
-# On Linux/Pi it is found automatically via PATH.
+# On Linux/Pi, tesseract is found via PATH automatically.
+# On Windows, set TESSERACT_CMD in .env if not in a standard location.
 TESSERACT_CMD = os.getenv("TESSERACT_CMD", r"C:\Program Files\Tesseract-OCR\tesseract.exe")
+
+# --- Detection tuning ---
+# Minimum OCR region height (pixels); smaller regions are upscaled before OCR.
+OCR_MIN_HEIGHT = int(os.getenv("OCR_MIN_HEIGHT", "140"))
+# White-label brightness threshold (0-255); pixels above this are treated as "white sticker".
+WHITE_THRESHOLD = int(os.getenv("WHITE_THRESHOLD", "185"))
+# Morphological kernel size for sticker region detection (width, height in pixels).
+MORPH_KERNEL_W = int(os.getenv("MORPH_KERNEL_W", "28"))
+MORPH_KERNEL_H = int(os.getenv("MORPH_KERNEL_H", "14"))
+# Padding added around each detected sticker region before OCR (pixels).
+REGION_PADDING = int(os.getenv("REGION_PADDING", "14"))
+# Confidence threshold to declare a batch code present.
+DETECTION_THRESHOLD = float(os.getenv("DETECTION_THRESHOLD", "0.35"))
+# Minimum average frame brightness before OCR is attempted (0-255).
+# Skips frames while the camera is still stabilising / lens cap on.
+DARK_FRAME_THRESHOLD = float(os.getenv("DARK_FRAME_THRESHOLD", "8.0"))
+# Max seconds between OCR passes in the worker thread (rate-limits CPU use).
+OCR_INTERVAL_S = float(os.getenv("OCR_INTERVAL_S", "0.0"))
 
 # --- Logging ---
 LOG_DIR = os.getenv(
     "LOG_DIR",
     os.path.join(os.path.dirname(__file__), "data", "results")
 )
+# Save a JPEG snapshot of each defect frame alongside the CSV row.
+LOG_SNAPSHOTS = os.getenv("LOG_SNAPSHOTS", "true").lower() == "true"
 
 # --- GPIO (Raspberry Pi only) ---
 GPIO_BUZZER_PIN = int(os.getenv("GPIO_BUZZER_PIN", "17"))
 GPIO_LED_PIN = int(os.getenv("GPIO_LED_PIN", "27"))
+# Duration of the alert trigger in seconds.
+ALERT_DURATION_S = float(os.getenv("ALERT_DURATION_S", "1.0"))
 
 # --- Dashboard ---
 FLASK_PORT = int(os.getenv("FLASK_PORT", "5000"))

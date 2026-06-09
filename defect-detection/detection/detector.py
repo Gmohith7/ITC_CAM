@@ -2,6 +2,7 @@ import sys
 import os
 import time
 import threading
+import traceback
 import cv2
 import numpy as np
 
@@ -12,6 +13,7 @@ from camera.capture import CameraCapture
 from preprocessing.preprocess import draw_result
 from model.inference import BatchCodeDetector
 from alerts.alert import AlertSystem
+from defect_logging.logger import log_detection
 
 
 class _DetectionState:
@@ -47,33 +49,44 @@ def _ocr_worker(camera: CameraCapture, detector: BatchCodeDetector,
     """
     OCR runs in its own thread — never blocks the display loop.
     Uses get_frame_ref() (zero copy) since it only reads the frame.
+    Rate-limited by config.OCR_INTERVAL_S to cap CPU usage.
     """
+    _last_run = 0.0
+
     while not stop_event.is_set():
         try:
+            # Rate limit: honour OCR_INTERVAL_S minimum gap between passes
+            now = time.monotonic()
+            gap = config.OCR_INTERVAL_S - (now - _last_run)
+            if gap > 0:
+                time.sleep(gap)
+
             frame = camera.get_frame_ref()
             if frame is None:
                 time.sleep(0.02)
                 continue
 
-            # Skip frames that are too dark (camera still stabilising)
-            if np.mean(frame) < 8:
+            # Skip frames that are too dark (camera still stabilising / lens cap)
+            if np.mean(frame) < config.DARK_FRAME_THRESHOLD:
                 time.sleep(0.05)
                 continue
 
             # Work on a copy so the capture thread can replace _last_frame freely
             frame_copy = frame.copy()
+            _last_run = time.monotonic()
 
             label, confidence, is_defect, regions, text = detector.predict(frame_copy)
             state.update(label, confidence, is_defect, regions, text)
 
             if is_defect:
                 alerts.trigger()
+                log_detection(label, confidence, frame_copy)
             else:
                 alerts.clear()
 
-        except Exception as e:
-            print(f"[OCR worker] {e}")
-            time.sleep(0.1)
+        except Exception:
+            print(f"[OCR worker] Unhandled exception:\n{traceback.format_exc()}")
+            time.sleep(0.5)
 
 
 def run(headless: bool = False):
@@ -114,7 +127,7 @@ def run(headless: bool = False):
                     break
 
     except KeyboardInterrupt:
-        print("[Detector] Stopped.")
+        print("\n[Detector] Stopped.")
     finally:
         stop_event.set()
         ocr_thread.join(timeout=3.0)

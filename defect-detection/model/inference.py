@@ -22,6 +22,8 @@ Stage 2 — full-frame OCR with multiple contrast variants (dark/direct-print pa
 """
 
 import re
+import shutil
+import platform
 import cv2
 import numpy as np
 import config
@@ -31,7 +33,7 @@ import config
 # Date in any reasonable separator form: DD/MM/YY, DD/MM/YYYY, DD-MM-YY etc.
 _PAT_DATE = re.compile(r'\b\d{2}[/\\\-\.]\d{2}[/\\\-\.]\d{2,4}\b')
 
-# Time stamp at start: HH:MM or HH MM (OCR sometimes drops the colon)
+# Time stamp: HH:MM or HH MM (OCR sometimes drops the colon)
 _PAT_TIME = re.compile(r'\b\d{1,2}[: ]\d{2}\b')
 
 # Label keywords that appear next to batch info
@@ -45,17 +47,14 @@ _PAT_KEYWORDS = re.compile(
 _PAT_MRP_LINE = re.compile(r'\d+\.\d{2}\s*/\s*\(\s*\d+\.\d{2}\s*\)')
 
 # Weights: how much each evidence type contributes to confidence
+# PSM modes: 6=single block, 7=single text line, 11=sparse text, 3=fully automatic
 _EVIDENCE = [
     (_PAT_DATE,     0.35, 2),   # up to 2 dates (PKD + USE BY) = 0.70
     (_PAT_KEYWORDS, 0.20, 2),   # up to 2 keyword hits = 0.40
     (_PAT_TIME,     0.20, 1),
     (_PAT_MRP_LINE, 0.15, 1),
 ]
-# Minimum score to declare batch code present
-_THRESHOLD = 0.35
-
 _OCR_PSMS = (6, 7, 11, 3)
-_OCR_MIN_HEIGHT = 140
 
 
 # ── Scoring ──────────────────────────────────────────────────────────────────
@@ -82,15 +81,17 @@ def _to_gray(frame: np.ndarray) -> np.ndarray:
         return frame[:, :, 0]
     return cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
 
+
 def _preprocessing_variants(gray: np.ndarray):
     """
     Yield binarised grayscale images to try for OCR.
     Covers dark-on-light, light-on-dark, and low-contrast text.
     """
     h, w = gray.shape
-    if h < _OCR_MIN_HEIGHT:
-        scale = _OCR_MIN_HEIGHT / h
-        gray = cv2.resize(gray, (int(w * scale), _OCR_MIN_HEIGHT), interpolation=cv2.INTER_CUBIC)
+    if h < config.OCR_MIN_HEIGHT:
+        scale = config.OCR_MIN_HEIGHT / h
+        gray = cv2.resize(gray, (int(w * scale), config.OCR_MIN_HEIGHT),
+                          interpolation=cv2.INTER_CUBIC)
 
     blur = cv2.GaussianBlur(gray, (3, 3), 0)
     sharp = cv2.addWeighted(gray, 1.6, blur, -0.6, 0)
@@ -122,10 +123,10 @@ def _preprocessing_variants(gray: np.ndarray):
     yield cv2.bitwise_not(adapt)
 
 
-def _ocr_best(image: np.ndarray, psm_list: tuple[int, ...]) -> tuple[str, float]:
+def _ocr_best(image: np.ndarray, psm_list: tuple) -> tuple:
     """
-    Run Tesseract across all preprocessing variants.
-    Return (text, score) of the variant with the highest evidence score.
+    Run Tesseract across all preprocessing variants and PSM modes.
+    Return (text, score) for the variant with the highest evidence score.
     """
     import pytesseract
     gray = _to_gray(image)
@@ -151,8 +152,10 @@ def _find_white_label_regions(frame_rgb: np.ndarray) -> list:
     Returns list of (x, y, w, h) sorted by area descending.
     """
     gray = _to_gray(frame_rgb)
-    _, thresh = cv2.threshold(gray, 185, 255, cv2.THRESH_BINARY)
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (28, 14))
+    _, thresh = cv2.threshold(gray, config.WHITE_THRESHOLD, 255, cv2.THRESH_BINARY)
+    kernel = cv2.getStructuringElement(
+        cv2.MORPH_RECT, (config.MORPH_KERNEL_W, config.MORPH_KERNEL_H)
+    )
     closed = cv2.morphologyEx(thresh, cv2.MORPH_CLOSE, kernel)
 
     contours, _ = cv2.findContours(closed, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -160,12 +163,12 @@ def _find_white_label_regions(frame_rgb: np.ndarray) -> list:
     frame_area = w_img * h_img
 
     regions = []
+    pad = config.REGION_PADDING
     for cnt in contours:
         x, y, w, h = cv2.boundingRect(cnt)
         area = w * h
         aspect = w / max(h, 1)
         if frame_area * 0.003 < area < frame_area * 0.60 and 0.3 < aspect < 12.0:
-            pad = 14
             x1 = max(0, x - pad)
             y1 = max(0, y - pad)
             x2 = min(w_img, x + w + pad)
@@ -195,9 +198,11 @@ class BatchCodeDetector:
 
     def _init_tesseract(self) -> bool:
         try:
-            import pytesseract, platform
+            import pytesseract
             if platform.system() == "Windows":
-                pytesseract.pytesseract.tesseract_cmd = config.TESSERACT_CMD
+                # Prefer PATH lookup; fall back to config value.
+                exe = shutil.which("tesseract") or config.TESSERACT_CMD
+                pytesseract.pytesseract.tesseract_cmd = exe
             pytesseract.get_tesseract_version()
             print("[Detector] Tesseract OCR ready.")
             return True
@@ -205,7 +210,13 @@ class BatchCodeDetector:
             print(f"[Detector] Tesseract unavailable ({e}) — region-only fallback.")
             return False
 
-    def predict(self, frame_rgb: np.ndarray):
+    def predict(self, frame_rgb: np.ndarray) -> tuple:
+        """
+        Run the two-stage batch code detection on `frame_rgb`.
+
+        Returns:
+            (label, confidence, is_defect, regions, ocr_text)
+        """
         regions = _find_white_label_regions(frame_rgb)
 
         if not self._tesseract_ok:
@@ -222,24 +233,24 @@ class BatchCodeDetector:
             text, score = _ocr_best(crop, _OCR_PSMS)
             if score > best_score:
                 best_score, best_text = score, text
-            if score >= _THRESHOLD:
+            if score >= config.DETECTION_THRESHOLD:
                 hit_regions.append((x, y, w, h))
 
-        if best_score >= _THRESHOLD:
+        if best_score >= config.DETECTION_THRESHOLD:
             return "OK", best_score, False, hit_regions or regions, best_text.strip()
 
         # ── Stage 2: full-frame OCR for direct-print packaging ───────────────
         h_img, w_img = frame_rgb.shape[:2]
         scale = min(1.0, 1200 / max(w_img, h_img))
-        small = cv2.resize(frame_rgb,
-                           (int(w_img * scale), int(h_img * scale)),
-                           interpolation=cv2.INTER_AREA) if scale < 1.0 else frame_rgb
+        small = (cv2.resize(frame_rgb, (int(w_img * scale), int(h_img * scale)),
+                            interpolation=cv2.INTER_AREA)
+                 if scale < 1.0 else frame_rgb)
 
         full_text, full_score = _ocr_best(small, _OCR_PSMS)
         if full_score > best_score:
             best_score, best_text = full_score, full_text
 
-        found = best_score >= _THRESHOLD
+        found = best_score >= config.DETECTION_THRESHOLD
         return (
             "OK" if found else "DEFECT",
             best_score if found else 0.0,

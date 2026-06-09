@@ -1,5 +1,6 @@
 import os
 import sys
+import traceback
 import cv2
 import numpy as np
 import config
@@ -26,9 +27,9 @@ class CameraCapture:
         self._capture_thread = threading.Thread(target=self._frame_thread, daemon=True)
         self._capture_thread.start()
 
-        # Wait for first frame before returning
-        deadline = time.time() + 3.0
-        while time.time() < deadline:
+        # Wait for first frame before returning (up to 3 s)
+        deadline = time.monotonic() + 3.0
+        while time.monotonic() < deadline:
             with self._frame_lock:
                 if self._last_frame is not None:
                     break
@@ -39,7 +40,6 @@ class CameraCapture:
         from picamera2 import Picamera2
         self._mode = "picamera2"
         self.cam = Picamera2()
-        # Request BGR to align with OpenCV, then convert as needed for the pipeline.
         cfg = self.cam.create_video_configuration(
             main={"size": config.CAMERA_RESOLUTION, "format": "BGR888"},
             controls={"FrameRate": config.FRAME_RATE}
@@ -49,10 +49,13 @@ class CameraCapture:
         print(f"[Camera] picamera2 initialised at {config.FRAME_RATE} fps.")
 
     def _ensure_system_dist_packages(self):
-        for path in (
+        """Add picamera2's system-installed dist-packages to sys.path if not present."""
+        import glob
+        candidates = [
             "/usr/lib/python3/dist-packages",
-            "/usr/lib/python3.11/dist-packages",
-        ):
+            *glob.glob("/usr/lib/python3.*/dist-packages"),
+        ]
+        for path in candidates:
             if os.path.isdir(path) and path not in sys.path:
                 sys.path.insert(0, path)
 
@@ -74,49 +77,56 @@ class CameraCapture:
                 print(f"[Camera] Webcam {idx} initialised at {config.FRAME_RATE} fps.")
                 return
             cap.release()
-        
-        print(f"[Camera] Cannot open any webcam. Falling back to dummy video stream.")
+
+        print("[Camera] Cannot open any webcam. Falling back to dummy video stream.")
         self._mode = "dummy"
 
     def _frame_thread(self):
         """Capture frames as fast as the hardware allows; keep only the latest."""
         while not self._stop_event.is_set():
             try:
-                if self._mode == "picamera2":
-                    # capture_array("main") skips an internal copy vs the default "main" path.
-                    frame = self.cam.capture_array("main")
-                    if config.GRAYSCALE_MODE:
-                        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-                    else:
-                        frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                elif self._mode == "webcam":
-                    ret, bgr = self.cam.read()
-                    if not ret:
-                        continue
-                    if config.GRAYSCALE_MODE:
-                        frame = cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
-                    else:
-                        frame = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
-                elif self._mode == "dummy":
-                    if config.GRAYSCALE_MODE:
-                        frame = np.random.randint(0, 256, (config.CAMERA_RESOLUTION[1], config.CAMERA_RESOLUTION[0]), dtype=np.uint8)
-                        cv2.putText(frame, "DUMMY MODE (NO WEBCAM)", (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 3, 255, 4)
-                    else:
-                        frame = np.random.randint(0, 256, (config.CAMERA_RESOLUTION[1], config.CAMERA_RESOLUTION[0], 3), dtype=np.uint8)
-                        cv2.putText(frame, "DUMMY MODE (NO WEBCAM)", (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 3, (255, 0, 0), 4)
-                    time.sleep(1.0 / config.FRAME_RATE)
+                frame = self._capture_one()
+                if frame is not None:
+                    with self._frame_lock:
+                        self._last_frame = frame
+            except Exception:
+                print(f"[Camera] frame thread error:\n{traceback.format_exc()}")
+                time.sleep(0.1)
 
-                with self._frame_lock:
-                    self._last_frame = frame
-            except Exception as e:
-                print(f"[Camera] frame thread error: {e}")
-                time.sleep(0.05)
+    def _capture_one(self):
+        if self._mode == "picamera2":
+            frame = self.cam.capture_array("main")
+            if config.GRAYSCALE_MODE:
+                return cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+            return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        if self._mode == "webcam":
+            ret, bgr = self.cam.read()
+            if not ret:
+                return None
+            if config.GRAYSCALE_MODE:
+                return cv2.cvtColor(bgr, cv2.COLOR_BGR2GRAY)
+            return cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+
+        if self._mode == "dummy":
+            h, w = config.CAMERA_RESOLUTION[1], config.CAMERA_RESOLUTION[0]
+            if config.GRAYSCALE_MODE:
+                frame = np.full((h, w), 80, dtype=np.uint8)
+                cv2.putText(frame, "DUMMY MODE", (w // 6, h // 2),
+                            cv2.FONT_HERSHEY_SIMPLEX, w / 640, 200, 2)
+            else:
+                frame = np.full((h, w, 3), (40, 40, 40), dtype=np.uint8)
+                cv2.putText(frame, "DUMMY MODE", (w // 6, h // 2),
+                            cv2.FONT_HERSHEY_SIMPLEX, w / 640, (200, 200, 200), 2)
+            time.sleep(1.0 / config.FRAME_RATE)
+            return frame
+
+        return None
 
     def get_frame(self) -> np.ndarray:
-        """Return the most recently captured frame as (H, W, 3) RGB uint8.
-        Returns a copy so callers can mutate freely."""
-        deadline = time.time() + 2.0
-        while time.time() < deadline:
+        """Return the most recently captured frame as a copy (safe for mutation)."""
+        deadline = time.monotonic() + 2.0
+        while time.monotonic() < deadline:
             with self._frame_lock:
                 if self._last_frame is not None:
                     return self._last_frame.copy()
