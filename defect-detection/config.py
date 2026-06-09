@@ -6,7 +6,7 @@ load_dotenv(os.path.join(os.path.dirname(__file__), ".env"))
 # --- Camera ---
 CAMERA_RESOLUTION = (1920, 1080)
 FRAME_RATE = int(os.getenv("FRAME_RATE", "30"))
-GRAYSCALE_MODE = os.getenv("GRAYSCALE_MODE", "true").lower() == "true"
+GRAYSCALE_MODE = os.getenv("GRAYSCALE_MODE", "false").lower() == "true"
 
 # --- Tesseract OCR ---
 # On Linux/Pi, tesseract is found via PATH automatically.
@@ -24,7 +24,7 @@ MORPH_KERNEL_H = int(os.getenv("MORPH_KERNEL_H", "14"))
 # Padding added around each detected sticker region before OCR (pixels).
 REGION_PADDING = int(os.getenv("REGION_PADDING", "14"))
 # Confidence threshold to declare a batch code present.
-DETECTION_THRESHOLD = float(os.getenv("DETECTION_THRESHOLD", "0.35"))
+DETECTION_THRESHOLD = float(os.getenv("DETECTION_THRESHOLD", "0.55"))
 # Minimum average frame brightness before OCR is attempted (0-255).
 # Skips frames while the camera is still stabilising / lens cap on.
 DARK_FRAME_THRESHOLD = float(os.getenv("DARK_FRAME_THRESHOLD", "8.0"))

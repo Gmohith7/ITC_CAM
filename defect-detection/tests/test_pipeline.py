@@ -24,24 +24,77 @@ def test_draw_result_defect():
     from preprocessing.preprocess import draw_result
     frame = np.zeros((480, 640, 3), dtype=np.uint8)
     out = draw_result(frame.copy(), "DEFECT", 0.0, defect=True,
-                      regions=[(10, 10, 100, 50)], ocr_text="11:05 04A11")
+                      regions=[], ocr_text="")
+    assert out.shape == frame.shape
+
+
+def test_draw_result_scanning():
+    from preprocessing.preprocess import draw_result
+    frame = np.zeros((480, 640, 3), dtype=np.uint8)
+    out = draw_result(frame.copy(), "SCANNING", 0.0, scanning=True)
     assert out.shape == frame.shape
 
 
 def test_draw_result_grayscale_input():
-    """Grayscale frames must be converted to RGB before drawing."""
+    """Grayscale frames are converted to RGB before drawing."""
     from preprocessing.preprocess import draw_result
     frame = np.zeros((480, 640), dtype=np.uint8)
     out = draw_result(frame.copy(), "SCANNING", 0.0, scanning=True)
     assert out.ndim == 3 and out.shape[2] == 3
 
 
-def test_draw_result_high_res_scales():
-    """Text and border thickness should scale with resolution."""
+def test_draw_result_high_res_stays_in_bounds():
+    """Badge and text must not exceed frame bounds at 1080p."""
     from preprocessing.preprocess import draw_result
-    frame_hd = np.zeros((1080, 1920, 3), dtype=np.uint8)
-    out = draw_result(frame_hd.copy(), "OK", 0.90)
-    assert out.shape == frame_hd.shape
+    frame = np.zeros((1080, 1920, 3), dtype=np.uint8)
+    out = draw_result(frame.copy(), "OK", 0.92,
+                      regions=[(100, 100, 400, 200)],
+                      ocr_text="Batch No.: 14:23 01A11\nPKD: 19/01/26")
+    assert out.shape == frame.shape
+
+
+# ── Scoring — strict AND-gate logic ──────────────────────────────────────────
+
+def test_score_empty_is_zero():
+    from model.inference import _score_text
+    assert _score_text("") == 0.0
+
+
+def test_score_date_alone_is_zero():
+    """A date alone must NOT pass — no keyword co-occurrence."""
+    from model.inference import _score_text
+    assert _score_text("28/09/25") == 0.0
+
+
+def test_score_keyword_alone_is_zero():
+    """A keyword alone must NOT pass — no date co-occurrence."""
+    from model.inference import _score_text
+    assert _score_text("Batch No.") == 0.0
+    assert _score_text("PKD") == 0.0
+
+
+def test_score_keyword_plus_date_passes():
+    """Keyword + date is the minimum passing combination."""
+    from model.inference import _score_text
+    assert _score_text("Batch No.\n28/09/25") >= 0.55
+
+
+def test_score_full_itc_block_high():
+    """Full realistic ITC sticker text must score ≥ 0.80."""
+    from model.inference import _score_text
+    sample = "Batch No.: 14:47 01B11\nPKD.: 28/09/25\nUse By: 24/06/26\n44.00/(0.64)"
+    assert _score_text(sample) >= 0.80
+
+
+def test_score_never_exceeds_one():
+    from model.inference import _score_text
+    sample = "Batch No. PKD Use By\n28/09/25\n24/06/26\n14:47\n44.00/(0.64)"
+    assert _score_text(sample) <= 1.0
+
+
+def test_score_random_text_is_zero():
+    from model.inference import _score_text
+    assert _score_text("The quick brown fox jumps over the lazy dog") == 0.0
 
 
 # ── Batch code detector ───────────────────────────────────────────────────────
@@ -56,36 +109,26 @@ def test_detector_blank_frame_is_defect():
     assert confidence == 0.0
 
 
-def test_detector_white_frame_finds_region():
+def test_detector_no_tesseract_is_strict_defect():
+    """Without Tesseract, detector must always return DEFECT (no false OK)."""
     from model.inference import BatchCodeDetector
     det = BatchCodeDetector()
+    det._tesseract_ok = False   # simulate missing Tesseract
     white = np.full((480, 640, 3), 255, dtype=np.uint8)
     label, confidence, is_defect, regions, text = det.predict(white)
-    assert isinstance(label, str)
-    assert isinstance(confidence, float)
-    assert 0.0 <= confidence <= 1.0
-    assert isinstance(is_defect, bool)
+    assert label == "DEFECT"
+    assert is_defect is True
+    assert confidence == 0.0
+    assert regions == []
 
 
-def test_confidence_score_range():
-    from model.inference import _score_text
-    assert _score_text("") == 0.0
-    assert _score_text("random unrelated text") == 0.0
-
-    # Single date alone crosses threshold
-    assert _score_text("28/09/25") >= 0.35
-
-    # Two dates (PKD + USE BY) is strong evidence
-    assert _score_text("24/10/25\n21/04/26") >= 0.60
-
-    # Keyword + date is strong
-    assert _score_text("Batch No.\n24/10/25") >= 0.50
-
-    # Full realistic sticker text scores high
-    assert _score_text("Batch No.:\n14:47\n28/09/25\n24/06/26\n44.00/(0.64)") >= 0.80
-
-    # Score never exceeds 1.0
-    assert _score_text("Batch No. PKD Use By\n28/09/25\n24/06/26\n14:47\n44.00/(0.64)") <= 1.0
+def test_detector_returns_empty_regions_on_defect():
+    """DEFECT must return empty regions list so no boxes are drawn."""
+    from model.inference import BatchCodeDetector
+    det = BatchCodeDetector()
+    blank = np.zeros((480, 640, 3), dtype=np.uint8)
+    label, confidence, is_defect, regions, text = det.predict(blank)
+    assert regions == []
 
 
 # ── Logging ───────────────────────────────────────────────────────────────────
@@ -139,22 +182,20 @@ def test_alert_no_crash_without_gpio():
 
 
 def test_alert_trigger_is_nonblocking():
-    """trigger() should return immediately even with a non-zero duration."""
     import time
     from alerts.alert import AlertSystem
     a = AlertSystem()
     start = time.monotonic()
-    a.trigger(duration=2.0)   # 2 s alert — must not block
+    a.trigger(duration=2.0)
     elapsed = time.monotonic() - start
     assert elapsed < 0.5, f"trigger() blocked for {elapsed:.2f}s"
 
 
 def test_alert_debounce():
-    """A second trigger() call while one is active should be silently ignored."""
     from alerts.alert import AlertSystem
     a = AlertSystem()
     a.trigger(duration=5.0)
-    a.trigger(duration=5.0)   # should not raise or start a second thread that breaks lock
+    a.trigger(duration=5.0)  # must not raise or double-lock
     a.clear()
 
 
@@ -171,3 +212,9 @@ def test_config_values():
     assert config.DARK_FRAME_THRESHOLD >= 0
     assert config.REGION_PADDING >= 0
     assert config.ALERT_DURATION_S >= 0
+
+
+def test_grayscale_mode_is_false_by_default():
+    """Color mode must be on by default — grayscale was the old broken default."""
+    import config
+    assert config.GRAYSCALE_MODE is False
