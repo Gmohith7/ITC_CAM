@@ -40,8 +40,11 @@ class CameraCapture:
         from picamera2 import Picamera2
         self._mode = "picamera2"
         self.cam = Picamera2()
+        # Request RGB888 directly — on Pi 5 / libcamera, BGR888 delivers
+        # bytes in RGB order despite the name, causing a blue↔red channel
+        # swap. RGB888 is unambiguous and requires no post-conversion.
         cfg = self.cam.create_video_configuration(
-            main={"size": config.CAMERA_RESOLUTION, "format": "BGR888"},
+            main={"size": config.CAMERA_RESOLUTION, "format": "RGB888"},
             controls={"FrameRate": config.FRAME_RATE}
         )
         self.cam.configure(cfg)
@@ -95,10 +98,11 @@ class CameraCapture:
 
     def _capture_one(self):
         if self._mode == "picamera2":
+            # capture_array gives true RGB (RGB888 format configured above)
             frame = self.cam.capture_array("main")
             if config.GRAYSCALE_MODE:
-                return cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-            return cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                return cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
+            return frame  # already RGB — no conversion needed
 
         if self._mode == "webcam":
             ret, bgr = self.cam.read()
