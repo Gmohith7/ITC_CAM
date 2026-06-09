@@ -1,66 +1,77 @@
+#!/usr/bin/env python3
 """
-Run this on the Pi to diagnose exactly what picamera2 gives us:
-    python tools/diagnose_camera.py
+Run this ON THE PI with the SYSTEM python (not the venv) so picamera2 is found:
 
-Prints: array shape, dtype, channel order (by measuring known-colour objects),
-and saves test frames in all formats so you can inspect them visually.
+    python3 tools/diagnose_camera.py
+
+picamera2 is installed system-wide via apt, not inside the venv.
+This script captures one frame in every common format, saves JPEGs, and
+prints the array shape so you can see exactly what the hardware gives you.
 """
-import sys, os
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+import sys, os, time
+
+# Ensure system dist-packages are on the path (picamera2 lives there)
+for p in ("/usr/lib/python3/dist-packages",):
+    if os.path.isdir(p) and p not in sys.path:
+        sys.path.insert(0, p)
 
 import cv2
 import numpy as np
-import time
 
-OUTPUT_DIR = os.path.join(os.path.dirname(__file__), "cam_diag")
+OUTPUT_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "cam_diag")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
-def test_format(fmt: str, label: str):
+
+def grab(fmt: str):
+    from picamera2 import Picamera2
+    cam = Picamera2()
     try:
-        from picamera2 import Picamera2
-        cam = Picamera2()
         cfg = cam.create_video_configuration(
-            main={"size": (640, 480), "format": fmt},
+            main={"size": (640, 480), "format": fmt}
         )
         cam.configure(cfg)
         cam.start()
-        time.sleep(1.0)  # let AGC settle
+        time.sleep(1.5)   # let AGC/AWB settle
         raw = cam.capture_array("main")
+    finally:
         cam.stop()
         cam.close()
+    return raw
 
-        print(f"\n[{label}] format={fmt}")
+
+def save(name: str, arr: np.ndarray):
+    path = os.path.join(OUTPUT_DIR, f"{name}.jpg")
+    # cv2.imwrite expects BGR; we write as-is so the file reflects raw bytes
+    cv2.imwrite(path, arr)
+    print(f"  saved {path}")
+
+
+FORMATS = ["XRGB8888", "XBGR8888", "RGB888", "BGR888"]
+
+for fmt in FORMATS:
+    print(f"\n── {fmt} ──")
+    try:
+        raw = grab(fmt)
         print(f"  shape={raw.shape}  dtype={raw.dtype}")
-        print(f"  channel means: {[round(float(raw[...,i].mean()),1) for i in range(raw.shape[2] if raw.ndim==3 else 1)]}")
+        if raw.ndim == 3:
+            means = [round(float(raw[:,:,i].mean()), 1) for i in range(raw.shape[2])]
+            print(f"  channel means (as-is): {means}")
 
-        # Save the raw array as-is interpreted as BGR (OpenCV default)
-        cv2.imwrite(os.path.join(OUTPUT_DIR, f"{label}_raw_as_bgr.jpg"), raw)
+        # Save the raw array interpreted as BGR (what cv2 does by default)
+        save(f"{fmt}_raw_as_bgr", raw)
 
-        # Save with R and B swapped
-        if raw.ndim == 3 and raw.shape[2] >= 3:
-            swapped = raw[..., :3][..., ::-1].copy()
-            cv2.imwrite(os.path.join(OUTPUT_DIR, f"{label}_rb_swapped.jpg"), swapped)
-
-        # If 4-channel, try slices [0:3] and [1:4]
         if raw.ndim == 3 and raw.shape[2] == 4:
-            cv2.imwrite(os.path.join(OUTPUT_DIR, f"{label}_ch0-2.jpg"), raw[..., 0:3])
-            cv2.imwrite(os.path.join(OUTPUT_DIR, f"{label}_ch1-3.jpg"), raw[..., 1:4])
-            cv2.imwrite(os.path.join(OUTPUT_DIR, f"{label}_ch1-3_swapped.jpg"),
-                        raw[..., 1:4][..., ::-1])
+            # Try all four 3-channel slices / orderings
+            save(f"{fmt}_ch0-2",          raw[:,:,0:3])
+            save(f"{fmt}_ch1-3",          raw[:,:,1:4])
+            save(f"{fmt}_ch0-2_reversed", raw[:,:,2::-1])
+            save(f"{fmt}_ch1-3_reversed", raw[:,:,3:0:-1])
+
+        if raw.ndim == 3 and raw.shape[2] == 3:
+            save(f"{fmt}_reversed",       raw[:,:,::-1])
 
     except Exception as e:
-        print(f"[{label}] FAILED: {e}")
+        print(f"  FAILED: {e}")
 
-test_format("BGR888",   "bgr888")
-test_format("RGB888",   "rgb888")
-try:
-    test_format("XRGB8888", "xrgb8888")
-except Exception as e:
-    print(f"XRGB8888 not supported: {e}")
-try:
-    test_format("XBGR8888", "xbgr8888")
-except Exception as e:
-    print(f"XBGR8888 not supported: {e}")
-
-print(f"\nDiagnostic images saved to: {OUTPUT_DIR}")
-print("Copy them off the Pi (scp) and check which one looks correct.")
+print(f"\nDone. Images in: {OUTPUT_DIR}")
+print("The file whose name ends in the correct-looking image = that's your format.")

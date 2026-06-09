@@ -106,12 +106,10 @@ class CameraCapture:
         fmt = self._picam_fmt
 
         if raw.ndim == 3 and raw.shape[2] == 4:
-            if "XRGB" in fmt:
-                # Byte layout: [X, R, G, B] — drop channel 0
-                return np.ascontiguousarray(raw[:, :, 1:4])
-            else:
-                # XBGR layout: [X, B, G, R] — reverse channels 1-3
-                return np.ascontiguousarray(raw[:, :, 3:0:-1])
+            # Pi 5 ISP actual byte order per pixel (confirmed empirically): B G R X
+            # i.e. BGRX — channels [0,1,2] are BGR, channel 3 is padding.
+            # To get RGB we reverse the first three channels.
+            return np.ascontiguousarray(raw[:, :, 2::-1])   # [B,G,R,X] → [R,G,B]
 
         if raw.ndim == 3 and raw.shape[2] == 3:
             if "BGR" in fmt:
