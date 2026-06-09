@@ -12,6 +12,7 @@ class CameraCapture:
     """Abstracts picamera2 on Pi and OpenCV webcam in DEV_MODE."""
 
     def __init__(self):
+        self._picam_fmt = "XRGB8888"
         try:
             self._init_picamera()
         except Exception as e:
@@ -40,19 +41,20 @@ class CameraCapture:
         from picamera2 import Picamera2
         self._mode = "picamera2"
         self.cam = Picamera2()
-        # Request RGB888 directly — on Pi 5 / libcamera, BGR888 delivers
-        # bytes in RGB order despite the name, causing a blue↔red channel
-        # swap. RGB888 is unambiguous and requires no post-conversion.
+        # Pi 5 ISP always outputs 32-bit aligned pixels.
+        # XRGB8888 → capture_array returns (H, W, 4) with byte layout [X, R, G, B].
+        # We strip channel 0 (padding) and keep [1, 2, 3] to get clean RGB.
+        self._picam_fmt = "XRGB8888"
         cfg = self.cam.create_video_configuration(
-            main={"size": config.CAMERA_RESOLUTION, "format": "RGB888"},
+            main={"size": config.CAMERA_RESOLUTION, "format": self._picam_fmt},
             controls={"FrameRate": config.FRAME_RATE}
         )
         self.cam.configure(cfg)
         self.cam.start()
-        print(f"[Camera] picamera2 initialised at {config.FRAME_RATE} fps.")
+        print(f"[Camera] picamera2 initialised ({self._picam_fmt}) at {config.FRAME_RATE} fps.")
 
     def _ensure_system_dist_packages(self):
-        """Add picamera2's system-installed dist-packages to sys.path if not present."""
+        """Add picamera2's system dist-packages to sys.path if not already there."""
         import glob
         candidates = [
             "/usr/lib/python3/dist-packages",
@@ -73,16 +75,55 @@ class CameraCapture:
             cap.set(cv2.CAP_PROP_FRAME_WIDTH, config.CAMERA_RESOLUTION[0])
             cap.set(cv2.CAP_PROP_FRAME_HEIGHT, config.CAMERA_RESOLUTION[1])
             cap.set(cv2.CAP_PROP_FPS, config.FRAME_RATE)
-            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)   # minimise buffer lag
+            cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
             ret, _ = cap.read()
             if ret:
                 self.cam = cap
                 print(f"[Camera] Webcam {idx} initialised at {config.FRAME_RATE} fps.")
                 return
             cap.release()
-
         print("[Camera] Cannot open any webcam. Falling back to dummy video stream.")
         self._mode = "dummy"
+
+    # ── Frame conversion ──────────────────────────────────────────────────────
+
+    def _picam_to_rgb(self, raw: np.ndarray) -> np.ndarray:
+        """
+        Convert whatever picamera2 gives us into a clean (H, W, 3) RGB array.
+
+        Pi 5 / libcamera ISP always outputs 32-bit aligned pixels regardless of
+        the format name requested. Observed layouts:
+
+          XRGB8888 → (H, W, 4)  byte order per pixel: [X, R, G, B]
+                     → take channels [1, 2, 3]
+          XBGR8888 → (H, W, 4)  byte order: [X, B, G, R]
+                     → take channels [3, 2, 1]
+          BGR888   → (H, W, 3)  byte order: [B, G, R]
+                     → cvtColor BGR2RGB
+          RGB888   → (H, W, 3)  byte order: [R, G, B]
+                     → use as-is
+        """
+        fmt = self._picam_fmt
+
+        if raw.ndim == 3 and raw.shape[2] == 4:
+            if "XRGB" in fmt:
+                # Byte layout: [X, R, G, B] — drop channel 0
+                return np.ascontiguousarray(raw[:, :, 1:4])
+            else:
+                # XBGR layout: [X, B, G, R] — reverse channels 1-3
+                return np.ascontiguousarray(raw[:, :, 3:0:-1])
+
+        if raw.ndim == 3 and raw.shape[2] == 3:
+            if "BGR" in fmt:
+                return cv2.cvtColor(raw, cv2.COLOR_BGR2RGB)
+            return np.ascontiguousarray(raw)   # already RGB
+
+        # Unexpected — best-effort fallback
+        if raw.ndim == 2:
+            return cv2.cvtColor(raw, cv2.COLOR_GRAY2RGB)
+        return np.ascontiguousarray(raw[..., :3])
+
+    # ── Capture thread ────────────────────────────────────────────────────────
 
     def _frame_thread(self):
         """Capture frames as fast as the hardware allows; keep only the latest."""
@@ -98,11 +139,11 @@ class CameraCapture:
 
     def _capture_one(self):
         if self._mode == "picamera2":
-            # capture_array gives true RGB (RGB888 format configured above)
-            frame = self.cam.capture_array("main")
+            raw = self.cam.capture_array("main")
+            rgb = self._picam_to_rgb(raw)
             if config.GRAYSCALE_MODE:
-                return cv2.cvtColor(frame, cv2.COLOR_RGB2GRAY)
-            return frame  # already RGB — no conversion needed
+                return cv2.cvtColor(rgb, cv2.COLOR_RGB2GRAY)
+            return rgb
 
         if self._mode == "webcam":
             ret, bgr = self.cam.read()
@@ -127,8 +168,10 @@ class CameraCapture:
 
         return None
 
+    # ── Public API ────────────────────────────────────────────────────────────
+
     def get_frame(self) -> np.ndarray:
-        """Return the most recently captured frame as a copy (safe for mutation)."""
+        """Return a copy of the most recent frame (safe for mutation)."""
         deadline = time.monotonic() + 2.0
         while time.monotonic() < deadline:
             with self._frame_lock:
@@ -138,8 +181,7 @@ class CameraCapture:
         raise RuntimeError("[Camera] No frame available (timeout).")
 
     def get_frame_ref(self) -> np.ndarray:
-        """Return a direct reference to the latest frame — zero copy.
-        Caller must NOT mutate it. Use only for read-only inference."""
+        """Return a direct reference — zero copy. Do NOT mutate."""
         with self._frame_lock:
             return self._last_frame
 
