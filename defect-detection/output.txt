@@ -1,10 +1,10 @@
-[1:48:01.141347884] [9737]  INFO Camera camera_manager.cpp:340 libcamera v0.7.0+rpt20260205
-[1:48:01.160088572] [9747]  INFO RPI pisp.cpp:720 libpisp version v1.4.0 23-03-2026 (13:29:05)
-[1:48:01.191411966] [9747]  INFO IPAProxy ipa_proxy.cpp:180 Using tuning file /usr/share/libcamera/ipa/rpi/pisp/imx708.json
-[1:48:01.205255497] [9747]  INFO Camera camera_manager.cpp:223 Adding camera '/base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a' for pipeline handler rpi/pisp
-[1:48:01.205316108] [9747]  INFO RPI pisp.cpp:1181 Registered camera /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a to CFE device /dev/media0 and ISP device /dev/media2 using PiSP variant BCM2712_D0
-[1:48:01.210077488] [9737]  INFO Camera camera.cpp:1215 configuring streams: (0) 1920x1080-XRGB8888/Rec709/Rec709/None/Full (1) 2304x1296-BGGR_PISP_COMP1/RAW
-[1:48:01.210304875] [9747]  INFO RPI pisp.cpp:1485 Sensor: /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a - Selected sensor format: 2304x1296-SBGGR10_1X10/RAW - Selected CFE format: 2304x1296-PC1B/RAW
+[1:52:36.381674063] [10160]  INFO Camera camera_manager.cpp:340 libcamera v0.7.0+rpt20260205
+[1:52:36.392109569] [10173]  INFO RPI pisp.cpp:720 libpisp version v1.4.0 23-03-2026 (13:29:05)
+[1:52:36.404771824] [10173]  INFO IPAProxy ipa_proxy.cpp:180 Using tuning file /usr/share/libcamera/ipa/rpi/pisp/imx708.json
+[1:52:36.414640629] [10173]  INFO Camera camera_manager.cpp:223 Adding camera '/base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a' for pipeline handler rpi/pisp
+[1:52:36.414693295] [10173]  INFO RPI pisp.cpp:1181 Registered camera /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a to CFE device /dev/media0 and ISP device /dev/media2 using PiSP variant BCM2712_D0
+[1:52:36.422956052] [10160]  INFO Camera camera.cpp:1215 configuring streams: (0) 1920x1080-XRGB8888/Rec709/Rec709/None/Full (1) 2304x1296-BGGR_PISP_COMP1/RAW
+[1:52:36.424860932] [10173]  INFO RPI pisp.cpp:1485 Sensor: /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a - Selected sensor format: 2304x1296-SBGGR10_1X10/RAW - Selected CFE format: 2304x1296-PC1B/RAW
 [Camera] picamera2 initialised (XRGB8888) at 30 fps.
 [Camera] Continuous autofocus enabled.
 [Camera] AF speed=fast, range=macro.
@@ -21,11 +21,7 @@ QFontDatabase: Cannot find font directory /home/mohith/Desktop/ITC_CAM/.venv/lib
 Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
 QFontDatabase: Cannot find font directory /home/mohith/Desktop/ITC_CAM/.venv/lib/python3.13/site-packages/cv2/qt/fonts.
 Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
-[OCR] g=0 v=0 psm=11 score=0.00 | 'rn\n\nm~\n\noane+ag\n\n:\n\nLand\n\na. oe A\n\ncr 9e@ O@@att\n\nA ee A\n\nyaroaep?\n\neo 80°70 $@:\n\nat'
-[OCR] g=0 v=0 psm=3 score=0.00 | 'cr 96 O94'
-[OCR] g=0 v=1 psm=11 score=0.00 | "rn\n\nm~\n\noane+ag\n\n:\n\nbend\n\na. oe 7.’\n\n¢?r 9e@ O@att\n\nF198 9@\n\nyaroaep?\n\n@¢ 8¢0°'0 $@:\n\nwt"
-[OCR] g=0 v=1 psm=3 score=0.00 | 'cr 9@ OO 4%'
-[OCR] g=0 v=2 psm=11 score=0.00 | 'eouann 8\n\noath\n\n* x\n\n& 6\n\nSader ts on\n\nak\n\nre oi eee A\n\n0? Ce O9att\n\nat te\n\nAM LE\n\nly\n\nwi\n\n20 68 ste. bY\n\nWAN'
-[OCR] g=0 v=2 psm=3 score=0.00 | 'Diamy\n\nER Patan\n\nLfPy e ft ’'
-[OCR] g=0 v=3 psm=11 score=0.00 | 'eoanmn\n\noat\n\n* x\n\n6\n\nSader on\n\nwk\n\nri oi eee A\n\n07? C4 OQatt\n\na ite\n\nAM ALE\n\nly\n\nwi\n\n20 68 ste. $0:\n\nWAN'
-[OCR] g=0 v=3 psm=3 score=0.00 | 'Diamy\n\nER Peta\n\nLfPy e ft ’'
+[OCR] g=0 v=0 psm=11 score=0.00 | 'Cc)\n\neum\n\nt*\n\nan + a te A\n\n0?\n\n0¢ O94\n\n$19°091726\n\n24403:27\n\nre\n\n“~\n\n* ee\n\n40 0070 $6)\n\n—q\n\nnemmenmcipeaiaggy*\n\nvores'
+[OCR] g=0 v=1 psm=11 score=0.00 | 'Cc)\n\neum\n\nt.\n\nan + a tee A\n\n0?\n\n04 O94\n\n319091726\n\n24403:27\n\nre\n\n“I~\n\n* ee\n\n40 0070 $6)\n\n“a\n\nnemmenmcipeaaggy*\n\nvores'
+[OCR] g=0 v=2 psm=11 score=0.00 | '. =\n\n* 8\n\noanp 8\n\ns a, 4,\n\nay\n\n~<\n\n07 O4\n\nOOars\n\nTRI we\n\neee - |\n\n7208726\n\nir\n\n4002427\n\n\\\\ \\\n\nYe ad\n\n.\n\n3\n\not\n\n|\n\n|'
+[OCR] g=0 v=3 psm=11 score=0.00 | '. =\n\na* \\\n\noanp 8\n\ns a, §,\n\ney\n\n~<\n\n07 O04\n\nOOars\n\nTRt we\n\nene - |\n\n17208726\n\nir\n\n4¢@02427\n\n\\ \\\n\nYe ad\n\n.\n\n3\n\na\n\n|'
