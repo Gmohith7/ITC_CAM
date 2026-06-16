@@ -80,13 +80,13 @@ preprocessing/preprocess.py     ← draw_result: HUD overlay on frame
 alerts/alert.py                 ← AlertSystem: non-blocking GPIO LED + buzzer
 defect_logging/logger.py        ← CSV log + JPEG snapshot per defect
 dashboard/app.py                ← Flask MJPEG stream + /status JSON endpoint
-tests/test_pipeline.py          ← pytest unit tests (23 tests)
+tests/test_pipeline.py          ← pytest unit tests (27 tests)
 tools/diagnose_camera.py        ← camera format diagnostic (run with python3, not venv)
 ```
 
 ## Detection algorithm
 
-The detector is **strict** — it requires co-occurrence of a label keyword AND a date to produce an OK result. A date alone, a keyword alone, a bright region alone, or no Tesseract = always DEFECT.
+The detector is **strict** — it requires co-occurrence of specific evidence to produce an OK result. A lone date, lone keyword, bright region alone, or no Tesseract = always DEFECT.
 
 ### ITC batch code block structure (all products)
 ```
@@ -97,12 +97,17 @@ MRP Rs. incl. of all taxes/(Rs. per g)
 NN.NN/(N.NN)
 ```
 
-### Scoring (AND-gate)
+### Scoring (AND-gate — two valid paths)
+**Path A** (label text readable): keyword + at least one date
+**Path B** (label text garbled, dark cardboard): printed time (HH:MM) + at least two dates
+
 | Evidence | Score |
 |----------|-------|
 | keyword alone | 0.0 (hard gate) |
 | date alone | 0.0 (hard gate) |
+| time + 1 date alone | 0.0 (hard gate — too ambiguous) |
 | keyword + date (minimum) | 0.60 |
+| time + 2 dates (no keyword needed) | 0.90 |
 | + second date (PKD + Use By) | 0.80 |
 | + time HH:MM | +0.10 |
 | + alphanumeric batch code | +0.10 |
@@ -118,7 +123,7 @@ Threshold: **0.55** (set in config / `.env` as `DETECTION_THRESHOLD`).
 - Two grayscale sources are tried per image:
   - **Standard luminance** (`cv2.COLOR_RGB2GRAY`)
   - **min(G, B) channel** — for white text on dark red/maroon background: standard gray ≈ 58, min(G,B) ≈ 20, giving ~12:1 contrast vs ~4:1. Critical for dark cardboard packaging.
-- Date separators (`/`) are often misread as `9` or `1` by Tesseract on direct-print packaging. `_PAT_DATE` uses `[/\-\.|l19]?` as the separator so `24902127` still matches `24/02/27`.
+- Date separators (`/`) are misread many ways on direct-print packaging: `1` (narrow stroke), `9` (top serif), `4` (two strokes merging). `_PAT_DATE` uses `[/\-\.|l1-9]?` (any digit 1-9) as the separator so `24902127`, `31105126`, and `31408126` all match their true dates.
 - `mrp` is accepted as a keyword fallback — "MRP Rs." always appears in the ITC batch block and survives OCR noise better than multi-word labels.
 - Tesseract must be installed system-wide: `sudo apt install tesseract-ocr`. It is NOT pip-installable in the venv.
 
@@ -154,6 +159,6 @@ Located in `test_images/` at the project root. These are real ITC product photos
 
 - **Colour was wrong for many iterations** — root cause was Pi 5 BGRX pixel layout. Resolved in commit `171631f`.
 - **Camera not focusing** — `AF_RANGE=normal` starts at ~30 cm; changed default to `macro` (~10-30 cm) for inspection distances.
-- **"NO BATCH CODE" on clearly visible text** — Tesseract was not installed (`sudo apt install tesseract-ocr`). After install, dates were misread (/ → 9 or 1); fixed in `_PAT_DATE`. Stage 1 was OCRing individual text lines (no keyword+date co-occurrence); fixed by running full-frame first.
+- **"NO BATCH CODE" on clearly visible text** — Tesseract was not installed (`sudo apt install tesseract-ocr`). After install, dates were misread (/ → 9, 1, or 4); fixed in `_PAT_DATE` with `[/\-\.|l1-9]?` separator. Stage 1 was OCRing individual text lines; fixed by running full-frame first. On dark cardboard all label text was garbled but time+dates survived — fixed by adding `time + 2 dates` as a second AND-gate path.
 - `picamera2` cannot be installed in the venv via pip on Pi 5 — must use the system apt package and inject the path.
 - `diagnose_camera.py` must be run with `python3` (system), not `python` (venv), for the same reason.

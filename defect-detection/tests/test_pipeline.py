@@ -127,6 +127,29 @@ def test_score_date_alone_with_relaxed_regex_still_zero():
     assert _score_text("24902127") == 0.0
 
 
+def test_score_garbled_date_slash_as_four():
+    """'/' read as '4' by Tesseract: 31/08/26 -> 31408126."""
+    from model.inference import _score_text
+    assert _score_text("PKD 31408126") >= 0.55
+
+
+def test_score_time_plus_two_dates_no_keyword():
+    """Time + 2 dates passes with zero readable keywords (dark cardboard).
+
+    Mirrors real OCR output: '07 04 ODAN\\n31408126\\n24102127' where all
+    label text (Batch No., PKD., Use By) is garbled but the numeric block
+    (time + both dates) survives.
+    """
+    from model.inference import _score_text
+    assert _score_text("07 04 ODAN\n31408126\n24102127") >= 0.55
+
+
+def test_score_time_plus_one_date_is_zero():
+    """Time + only 1 date must NOT pass — too ambiguous without keyword."""
+    from model.inference import _score_text
+    assert _score_text("14:47\n28/09/25") == 0.0
+
+
 # ── Batch code detector ───────────────────────────────────────────────────────
 
 def test_detector_blank_frame_is_defect():

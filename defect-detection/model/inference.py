@@ -30,13 +30,14 @@ import config
 # ── Structural patterns ───────────────────────────────────────────────────────
 
 # Dates: DD/MM/YY or DD/MM/YYYY.
-# On direct-print dark cardboard Tesseract often misreads '/' as '9' (visually
-# similar at small size) or '1' (narrow stroke).  The character class
-# [/\-\.|l19] also accepts these common OCR substitutions so "24902127"
-# (i.e. "24/02/27") still matches.  Day is constrained to [0-3]\d and month
-# to [0-1]\d to reduce false matches from arbitrary digit strings.
+# On direct-print dark cardboard Tesseract misreads the '/' separator in many
+# ways: '1' (narrow stroke), '9' (top serif), '4' (two strokes merge), etc.
+# The class [/\-\.|l1-9] accepts any digit 1-9 as a separator substitute so
+# "24102127" (24/02/27), "24902127" (sep=9), and "31408126" (sep=4) all match.
+# Day is [0-3]\d and month is [0-1]\d to suppress false matches on arbitrary
+# digit strings.
 _PAT_DATE = re.compile(
-    r'\b[0-3]\d[/\-\.|l19]?[0-1]\d[/\-\.|l19]?\d{2,4}\b',
+    r'\b[0-3]\d[/\-\.|l1-9]?[0-1]\d[/\-\.|l1-9]?\d{2,4}\b',
     re.IGNORECASE,
 )
 
@@ -70,19 +71,24 @@ def _score_text(text: str) -> float:
     """
     Evidence-based confidence score in [0.0, 1.0].
 
-    Hard AND-gate: requires a label keyword AND at least one date.
-    Returns 0.0 if either is missing so no lone signal ever triggers OK.
+    Hard AND-gate — two valid paths:
+      A: label keyword (batch/pkd/use by/mrp/…) + at least one date.
+      B: printed time (HH:MM) + at least two dates.
+         Covers dark cardboard where all label text is garbled but the
+         numeric block (time, PKD date, Use By date) still reads through.
+    Returns 0.0 if neither path is satisfied.
     """
     has_keyword = bool(_PAT_KEYWORD.search(text))
+    has_time    = bool(_PAT_TIME.search(text))
     dates       = _PAT_DATE.findall(text)
     n_dates     = len(dates)
 
-    if not has_keyword or n_dates == 0:
+    if not ((has_keyword and n_dates >= 1) or (has_time and n_dates >= 2)):
         return 0.0
 
-    score = 0.40                           # base: keyword present
+    score = 0.40                           # base
     score += 0.20 * min(n_dates, 2)        # up to +0.40 for PKD + Use By
-    if _PAT_TIME.search(text):
+    if has_time:
         score += 0.10
     if _PAT_BATCH_CODE.search(text):
         score += 0.10
