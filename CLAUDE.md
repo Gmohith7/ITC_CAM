@@ -110,9 +110,17 @@ NN.NN/(N.NN)
 
 Threshold: **0.55** (set in config / `.env` as `DETECTION_THRESHOLD`).
 
-### Two-stage scan
-1. **Stage 1** — find white sticker regions (brightness threshold + morphology) + Canny edge rectangles. OCR each crop.
-2. **Stage 2** — full-frame OCR on downscaled image (for direct-print on coloured cardboard).
+### Two-stage scan (Stage 1 runs first — fastest path)
+1. **Stage 1** — full-frame OCR at two resolutions (full-res first, then 1280px). Uses PSM 11 (sparse text) + PSM 3. Early-exits the moment a score ≥ threshold is found. Handles direct-print cardboard where keywords and dates must be read together in one pass.
+2. **Stage 2** — region crop OCR (fallback). Finds white-sticker bounding boxes and OCRs each crop with the full PSM set (6, 11, 4, 3).
+
+### OCR preprocessing (hard-won)
+- Two grayscale sources are tried per image:
+  - **Standard luminance** (`cv2.COLOR_RGB2GRAY`)
+  - **min(G, B) channel** — for white text on dark red/maroon background: standard gray ≈ 58, min(G,B) ≈ 20, giving ~12:1 contrast vs ~4:1. Critical for dark cardboard packaging.
+- Date separators (`/`) are often misread as `9` or `1` by Tesseract on direct-print packaging. `_PAT_DATE` uses `[/\-\.|l19]?` as the separator so `24902127` still matches `24/02/27`.
+- `mrp` is accepted as a keyword fallback — "MRP Rs." always appears in the ITC batch block and survives OCR noise better than multi-word labels.
+- Tesseract must be installed system-wide: `sudo apt install tesseract-ocr`. It is NOT pip-installable in the venv.
 
 ## Key config values (.env / config.py)
 
@@ -121,13 +129,14 @@ GRAYSCALE_MODE=false        # must be false — colour is required for correct d
 AF_MODE=continuous          # Camera Module 3 autofocus: "continuous" (hunts automatically) or "manual"
 LENS_POSITION=5.0           # manual focus only; LensPosition = 1/distance_m (20cm→5.0, 25cm→4.0, 10cm→10.0)
 AF_SPEED=fast               # continuous-AF convergence: "fast" or "normal"
-AF_RANGE=normal             # AF search range: "normal" | "macro" | "full"
+AF_RANGE=macro              # AF search range: "macro" (default, ~10-30cm) | "normal" | "full"
 DETECTION_THRESHOLD=0.55    # minimum evidence score for OK
 WHITE_THRESHOLD=185         # sticker brightness threshold
 OCR_MIN_HEIGHT=140          # upscale OCR crops shorter than this
 DARK_FRAME_THRESHOLD=8.0    # skip frames darker than this (camera warming up)
 LOG_SNAPSHOTS=true          # save JPEG of each defect frame
 ALERT_DURATION_S=1.0        # GPIO pulse duration
+OCR_DEBUG=false             # print raw Tesseract output per variant to console
 ```
 
 ## GPIO notes
@@ -144,5 +153,7 @@ Located in `test_images/` at the project root. These are real ITC product photos
 ## Known issues / history
 
 - **Colour was wrong for many iterations** — root cause was Pi 5 BGRX pixel layout. Resolved in commit `171631f`.
+- **Camera not focusing** — `AF_RANGE=normal` starts at ~30 cm; changed default to `macro` (~10-30 cm) for inspection distances.
+- **"NO BATCH CODE" on clearly visible text** — Tesseract was not installed (`sudo apt install tesseract-ocr`). After install, dates were misread (/ → 9 or 1); fixed in `_PAT_DATE`. Stage 1 was OCRing individual text lines (no keyword+date co-occurrence); fixed by running full-frame first.
 - `picamera2` cannot be installed in the venv via pip on Pi 5 — must use the system apt package and inject the path.
 - `diagnose_camera.py` must be run with `python3` (system), not `python` (venv), for the same reason.

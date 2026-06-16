@@ -97,6 +97,36 @@ def test_score_random_text_is_zero():
     assert _score_text("The quick brown fox jumps over the lazy dog") == 0.0
 
 
+def test_score_garbled_date_slash_as_nine():
+    """'/' read as '9' by Tesseract on dark cardboard: 24/02/27 -> 24902127."""
+    from model.inference import _score_text
+    assert _score_text("PKD 24902127") >= 0.55
+
+
+def test_score_garbled_date_slash_as_one():
+    """'/' read as '1' by Tesseract: 31/05/26 -> 31105126."""
+    from model.inference import _score_text
+    assert _score_text("PKD 31105126") >= 0.55
+
+
+def test_score_mrp_keyword_plus_date_passes():
+    """'mrp' is accepted as a keyword fallback when labels are garbled."""
+    from model.inference import _score_text
+    assert _score_text("MRP 24/02/27") >= 0.55
+
+
+def test_score_mrp_alone_is_zero():
+    """'mrp' alone (no date) must not pass the AND-gate."""
+    from model.inference import _score_text
+    assert _score_text("MRP Rs. incl. of all taxes") == 0.0
+
+
+def test_score_date_alone_with_relaxed_regex_still_zero():
+    """Even with relaxed separators, a date without keyword must score 0."""
+    from model.inference import _score_text
+    assert _score_text("24902127") == 0.0
+
+
 # ── Batch code detector ───────────────────────────────────────────────────────
 
 def test_detector_blank_frame_is_defect():
