@@ -278,17 +278,34 @@ class BatchCodeDetector:
         """
         Run two-stage batch code detection on `frame_rgb` (H×W×3 RGB uint8).
         Without Tesseract, always returns DEFECT — never a false positive.
+
+        Stage 1: full-frame OCR — fast (24 Tesseract calls), catches direct-print
+                 cardboard where keywords and dates must be read together.
+        Stage 2: region crop OCR — fallback for white-sticker packaging where
+                 the sticker can be isolated and read at higher relative resolution.
         """
-        # Without OCR we cannot confirm anything — strict DEFECT
         if not self._tesseract_ok:
             return "DEFECT", 0.0, True, [], "OCR unavailable — install Tesseract"
 
-        candidates = _find_label_regions(frame_rgb)
-
         best_text, best_score = "", 0.0
-        hit_regions = []
 
-        # ── Stage 1: OCR each candidate region ──────────────────────────────
+        # ── Stage 1: full-frame OCR ──────────────────────────────────────────
+        h_img, w_img = frame_rgb.shape[:2]
+        scale = min(1.0, 1280 / max(w_img, h_img))
+        small = (cv2.resize(frame_rgb,
+                            (int(w_img * scale), int(h_img * scale)),
+                            interpolation=cv2.INTER_AREA)
+                 if scale < 1.0 else frame_rgb)
+        full_text, full_score = _ocr_best(small)
+        if full_score > best_score:
+            best_score, best_text = full_score, full_text
+
+        if best_score >= _THRESHOLD:
+            return "OK", best_score, False, [], best_text.strip()
+
+        # ── Stage 2: region crop OCR (white sticker on dark packaging) ───────
+        candidates = _find_label_regions(frame_rgb)
+        hit_regions = []
         for (x, y, rw, rh) in candidates:
             crop = frame_rgb[y:y + rh, x:x + rw]
             text, score = _ocr_best(crop)
@@ -297,26 +314,11 @@ class BatchCodeDetector:
             if score >= _THRESHOLD:
                 hit_regions.append((x, y, rw, rh))
 
-        if best_score >= _THRESHOLD:
-            return "OK", best_score, False, hit_regions, best_text.strip()
-
-        # ── Stage 2: full-frame OCR (direct-print on coloured cardboard) ────
-        h_img, w_img = frame_rgb.shape[:2]
-        scale = min(1.0, 1280 / max(w_img, h_img))
-        small = (cv2.resize(frame_rgb,
-                            (int(w_img * scale), int(h_img * scale)),
-                            interpolation=cv2.INTER_AREA)
-                 if scale < 1.0 else frame_rgb)
-
-        full_text, full_score = _ocr_best(small)
-        if full_score > best_score:
-            best_score, best_text = full_score, full_text
-
         found = best_score >= _THRESHOLD
         return (
             "OK"     if found else "DEFECT",
             best_score if found else 0.0,
             not found,
-            hit_regions if found else [],   # empty list = no boxes drawn when DEFECT
+            hit_regions if found else [],
             best_text.strip(),
         )

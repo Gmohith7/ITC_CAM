@@ -1,1 +1,0 @@
-OCR_DEBUG=true python -u run.py 2>&1 | tee output.txt
