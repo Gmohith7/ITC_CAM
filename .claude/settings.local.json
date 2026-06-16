@@ -3,7 +3,14 @@
     "allow": [
       "Bash(python -m venv venv)",
       "PowerShell(& \"e:\\\\SEM - 8\\\\ITC - cam\\\\defect-detection\\\\venv\\\\Scripts\\\\python.exe\" -m pip install pytesseract; Write-Host \"Exit: $LASTEXITCODE\")",
-      "PowerShell(python -m venv \"e:\\\\SEM - 8\\\\ITC - cam\\\\defect-detection\\\\venv\"; Write-Host \"Exit: $LASTEXITCODE\")"
+      "PowerShell(python -m venv \"e:\\\\SEM - 8\\\\ITC - cam\\\\defect-detection\\\\venv\"; Write-Host \"Exit: $LASTEXITCODE\")",
+      "Bash(Get-ChildItem -Path \"e:\\\\SEM - 8\\\\ITC - cam\" -Recurse -Force)",
+      "Bash(Select-Object FullName, PSIsContainer)",
+      "Bash(Sort-Object FullName)",
+      "Bash(Format-Table -AutoSize)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)"
     ]
   }
 }

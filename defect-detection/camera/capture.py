@@ -52,6 +52,64 @@ class CameraCapture:
         self.cam.configure(cfg)
         self.cam.start()
         print(f"[Camera] picamera2 initialised ({self._picam_fmt}) at {config.FRAME_RATE} fps.")
+        self._apply_focus()
+
+    def _apply_focus(self):
+        """Configure the Camera Module 3 autofocus lens.
+
+        Without this, picamera2 parks the lens at its default (far) position, so a
+        close-up product is permanently out of focus. Continuous AF makes the lens
+        keep hunting until whatever is in view is sharp. No-op on sensors that have
+        no autofocus motor (Camera Module 1/2, HQ cam).
+        """
+        try:
+            from libcamera import controls
+        except Exception as e:
+            print(f"[Camera] libcamera controls unavailable ({e}); skipping focus setup.")
+            return
+
+        af_mode = getattr(config, "AF_MODE", "continuous")
+        try:
+            if af_mode == "manual":
+                self.cam.set_controls({
+                    "AfMode": controls.AfModeEnum.Manual,
+                    "LensPosition": config.LENS_POSITION,
+                })
+                dist_cm = (100.0 / config.LENS_POSITION) if config.LENS_POSITION > 0 else float("inf")
+                print(f"[Camera] Manual focus locked at LensPosition={config.LENS_POSITION} (~{dist_cm:.0f} cm).")
+                return
+
+            # Continuous AF — the lens hunts automatically and never stops adjusting.
+            self.cam.set_controls({"AfMode": controls.AfModeEnum.Continuous})
+            print("[Camera] Continuous autofocus enabled.")
+        except Exception as e:
+            # Camera Module 1/2 / HQ cam have no AF motor — fixed lens, ignore.
+            print(f"[Camera] Autofocus not available on this sensor ({e}); using fixed lens.")
+            return
+
+        # Best-effort speed/range tuning (older libcamera builds may lack these enums).
+        extra = {}
+        try:
+            extra["AfSpeed"] = {
+                "fast": controls.AfSpeedEnum.Fast,
+                "normal": controls.AfSpeedEnum.Normal,
+            }.get(config.AF_SPEED, controls.AfSpeedEnum.Fast)
+        except Exception:
+            pass
+        try:
+            extra["AfRange"] = {
+                "normal": controls.AfRangeEnum.Normal,
+                "macro": controls.AfRangeEnum.Macro,
+                "full": controls.AfRangeEnum.Full,
+            }.get(config.AF_RANGE, controls.AfRangeEnum.Normal)
+        except Exception:
+            pass
+        if extra:
+            try:
+                self.cam.set_controls(extra)
+                print(f"[Camera] AF speed={config.AF_SPEED}, range={config.AF_RANGE}.")
+            except Exception as e:
+                print(f"[Camera] AF speed/range not applied ({e}).")
 
     def _ensure_system_dist_packages(self):
         """Add picamera2's system dist-packages to sys.path if not already there."""

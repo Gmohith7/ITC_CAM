@@ -8,6 +8,18 @@ CAMERA_RESOLUTION = (1920, 1080)
 FRAME_RATE = int(os.getenv("FRAME_RATE", "30"))
 GRAYSCALE_MODE = os.getenv("GRAYSCALE_MODE", "false").lower() == "true"
 
+# --- Autofocus (Camera Module 3 / autofocus lenses only; ignored on fixed-focus sensors) ---
+# "continuous" = lens keeps refocusing automatically on whatever is in view (default).
+# "manual"     = lock the lens at a fixed distance (best for a fixed-distance station).
+AF_MODE = os.getenv("AF_MODE", "continuous").lower()
+# Manual focus distance, used ONLY when AF_MODE=manual. LensPosition = 1 / distance_in_metres.
+# e.g. 20 cm -> 5.0, 25 cm -> 4.0, 10 cm -> 10.0, 0.0 = infinity.
+LENS_POSITION = float(os.getenv("LENS_POSITION", "5.0"))
+# Continuous-AF convergence speed: "fast" locks quicker, "normal" is smoother.
+AF_SPEED = os.getenv("AF_SPEED", "fast").lower()
+# AF search range: "normal" (typical distances), "macro" (close-ups only), "full" (macro->infinity).
+AF_RANGE = os.getenv("AF_RANGE", "macro").lower()
+
 # --- Tesseract OCR ---
 # On Linux/Pi, tesseract is found via PATH automatically.
 # On Windows, set TESSERACT_CMD in .env if not in a standard location.

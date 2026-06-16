@@ -36,6 +36,16 @@ rgb = raw[:, :, 2::-1]   # reverse channels 0-2: [B,G,R] → [R,G,B], drops X
 
 This is implemented in `camera/capture.py` → `_picam_to_rgb()`.
 
+## Camera Module 3 autofocus
+
+The Camera Module 3 (IMX708) has a motorised autofocus lens. picamera2 does **not**
+enable it by default — it parks the lens at a far/hyperfocal position, so a close-up
+product (~15–25 cm) is permanently blurred regardless of distance. `_apply_focus()` in
+`camera/capture.py` fixes this: by default it sets `AfMode=Continuous` so the lens keeps
+hunting until whatever is in view is sharp. Set `AF_MODE=manual` + `LENS_POSITION` to lock
+focus at a fixed bench distance instead. Minimum focus distance is **~10 cm** (standard
+lens) / ~5 cm (wide) — the product physically cannot be focused closer than that.
+
 ## Running the project
 
 ```bash
@@ -108,6 +118,10 @@ Threshold: **0.55** (set in config / `.env` as `DETECTION_THRESHOLD`).
 
 ```
 GRAYSCALE_MODE=false        # must be false — colour is required for correct display
+AF_MODE=continuous          # Camera Module 3 autofocus: "continuous" (hunts automatically) or "manual"
+LENS_POSITION=5.0           # manual focus only; LensPosition = 1/distance_m (20cm→5.0, 25cm→4.0, 10cm→10.0)
+AF_SPEED=fast               # continuous-AF convergence: "fast" or "normal"
+AF_RANGE=normal             # AF search range: "normal" | "macro" | "full"
 DETECTION_THRESHOLD=0.55    # minimum evidence score for OK
 WHITE_THRESHOLD=185         # sticker brightness threshold
 OCR_MIN_HEIGHT=140          # upscale OCR crops shorter than this
