@@ -29,8 +29,12 @@ import config
 
 # ── Structural patterns ───────────────────────────────────────────────────────
 
-# Dates: DD/MM/YY, DD/MM/YYYY, DD-MM-YY, DD.MM.YY — always 2-digit day/month
-_PAT_DATE = re.compile(r'\b\d{2}[/\-\.]\d{2}[/\-\.]\d{2,4}\b')
+# Dates: DD/MM/YY or DD/MM/YYYY.  Allow optional whitespace around separators
+# and accept | or l (common Tesseract misreads for /) in addition to / - .
+_PAT_DATE = re.compile(
+    r'\b\d{2}\s*[/\-\.|l]\s*\d{2}\s*[/\-\.|l]\s*\d{2,4}\b',
+    re.IGNORECASE,
+)
 
 # ITC-specific label keywords that bracket the batch block
 _PAT_KEYWORD = re.compile(
@@ -149,7 +153,7 @@ def _ocr_best(image: np.ndarray) -> tuple:
     import pytesseract
     gray = _to_gray(image)
     best_text, best_score = "", 0.0
-    for variant in _preprocessing_variants(gray):
+    for v_idx, variant in enumerate(_preprocessing_variants(gray)):
         for psm in _OCR_PSMS:
             cfg = f'--psm {psm} --oem 3'
             try:
@@ -157,6 +161,8 @@ def _ocr_best(image: np.ndarray) -> tuple:
                 score = _score_text(text)
                 if score > best_score:
                     best_score, best_text = score, text
+                if config.OCR_DEBUG and text.strip():
+                    print(f"[OCR] variant={v_idx} psm={psm} score={score:.2f} | {text.strip()[:120]!r}")
             except Exception:
                 continue
     return best_text, best_score

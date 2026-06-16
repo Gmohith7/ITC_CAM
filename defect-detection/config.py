@@ -64,3 +64,6 @@ FLASK_HOST = os.getenv("FLASK_HOST", "0.0.0.0")
 # --- Dev mode: uses webcam instead of picamera2 ---
 DEV_MODE = os.getenv("DEV_MODE", "false").lower() == "true"
 DEV_CAMERA_INDEX = int(os.getenv("DEV_CAMERA_INDEX", "0"))
+
+# --- Debug: print raw Tesseract output to console ---
+OCR_DEBUG = os.getenv("OCR_DEBUG", "false").lower() == "true"
