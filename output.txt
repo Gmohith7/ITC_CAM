@@ -1,0 +1,27 @@
+(.venv) mohith@mohith:~/Desktop/ITC_CAM/defect-detection $ python run.py
+[0:26:46.730710464] [3690]  INFO Camera camera_manager.cpp:340 libcamera v0.7.0+rpt20260205
+[0:26:46.740746819] [3699]  INFO RPI pisp.cpp:720 libpisp version v1.4.0 23-03-2026 (13:29:05)
+[0:26:46.749836788] [3699]  INFO IPAProxy ipa_proxy.cpp:180 Using tuning file /usr/share/libcamera/ipa/rpi/pisp/imx708.json
+[0:26:46.758183463] [3699]  INFO Camera camera_manager.cpp:223 Adding camera '/base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a' for pipeline handler rpi/pisp
+[0:26:46.758431481] [3699]  INFO RPI pisp.cpp:1181 Registered camera /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a to CFE device /dev/media0 and ISP device /dev/media2 using PiSP variant BCM2712_D0
+[0:26:46.763356724] [3690]  INFO Camera camera.cpp:1215 configuring streams: (0) 1920x1080-XRGB8888/Rec709/Rec709/None/Full (1) 2304x1296-BGGR_PISP_COMP1/RAW
+[0:26:46.763796241] [3699]  INFO RPI pisp.cpp:1485 Sensor: /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a - Selected sensor format: 2304x1296-SBGGR10_1X10/RAW - Selected CFE format: 2304x1296-PC1B/RAW
+[Camera] picamera2 initialised (XRGB8888) at 30 fps.
+[Camera] Continuous autofocus enabled.
+[Camera] AF speed=fast, range=macro.
+[Detector] Tesseract unavailable (tesseract is not installed or it's not in your PATH. See README file for more information.) — will always return DEFECT.
+[Alert] GPIO initialised (lgpio / RP1).
+[Detector] Starting. Press 'q' or Ctrl+C to stop.
+QFontDatabase: Cannot find font directory /home/mohith/Desktop/ITC_CAM/.venv/lib/python3.13/site-packages/cv2/qt/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+QFontDatabase: Cannot find font directory /home/mohith/Desktop/ITC_CAM/.venv/lib/python3.13/site-packages/cv2/qt/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+QFontDatabase: Cannot find font directory /home/mohith/Desktop/ITC_CAM/.venv/lib/python3.13/site-packages/cv2/qt/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+QFontDatabase: Cannot find font directory /home/mohith/Desktop/ITC_CAM/.venv/lib/python3.13/site-packages/cv2/qt/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+QFontDatabase: Cannot find font directory /home/mohith/Desktop/ITC_CAM/.venv/lib/python3.13/site-packages/cv2/qt/fonts.
+Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
+^C
+[Detector] Stopped.
+[Camera] Released.
