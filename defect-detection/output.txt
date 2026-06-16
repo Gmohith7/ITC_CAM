@@ -1,10 +1,10 @@
-[0:57:22.199292863] [7375]  INFO Camera camera_manager.cpp:340 libcamera v0.7.0+rpt20260205
-[0:57:22.209674159] [7386]  INFO RPI pisp.cpp:720 libpisp version v1.4.0 23-03-2026 (13:29:05)
-[0:57:22.230418084] [7386]  INFO IPAProxy ipa_proxy.cpp:180 Using tuning file /usr/share/libcamera/ipa/rpi/pisp/imx708.json
-[0:57:22.239633197] [7386]  INFO Camera camera_manager.cpp:223 Adding camera '/base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a' for pipeline handler rpi/pisp
-[0:57:22.239687586] [7386]  INFO RPI pisp.cpp:1181 Registered camera /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a to CFE device /dev/media0 and ISP device /dev/media2 using PiSP variant BCM2712_D0
-[0:57:22.245177984] [7375]  INFO Camera camera.cpp:1215 configuring streams: (0) 1920x1080-XRGB8888/Rec709/Rec709/None/Full (1) 2304x1296-BGGR_PISP_COMP1/RAW
-[0:57:22.245432409] [7386]  INFO RPI pisp.cpp:1485 Sensor: /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a - Selected sensor format: 2304x1296-SBGGR10_1X10/RAW - Selected CFE format: 2304x1296-PC1B/RAW
+[1:12:17.569797312] [8517]  INFO Camera camera_manager.cpp:340 libcamera v0.7.0+rpt20260205
+[1:12:17.580989769] [8527]  INFO RPI pisp.cpp:720 libpisp version v1.4.0 23-03-2026 (13:29:05)
+[1:12:17.590498513] [8527]  INFO IPAProxy ipa_proxy.cpp:180 Using tuning file /usr/share/libcamera/ipa/rpi/pisp/imx708.json
+[1:12:17.600681235] [8527]  INFO Camera camera_manager.cpp:223 Adding camera '/base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a' for pipeline handler rpi/pisp
+[1:12:17.600718605] [8527]  INFO RPI pisp.cpp:1181 Registered camera /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a to CFE device /dev/media0 and ISP device /dev/media2 using PiSP variant BCM2712_D0
+[1:12:17.604474788] [8517]  INFO Camera camera.cpp:1215 configuring streams: (0) 1920x1080-XRGB8888/Rec709/Rec709/None/Full (1) 2304x1296-BGGR_PISP_COMP1/RAW
+[1:12:17.604610843] [8527]  INFO RPI pisp.cpp:1485 Sensor: /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a - Selected sensor format: 2304x1296-SBGGR10_1X10/RAW - Selected CFE format: 2304x1296-PC1B/RAW
 [Camera] picamera2 initialised (XRGB8888) at 30 fps.
 [Camera] Continuous autofocus enabled.
 [Camera] AF speed=fast, range=macro.
@@ -21,19 +21,10 @@ QFontDatabase: Cannot find font directory /home/mohith/Desktop/ITC_CAM/.venv/lib
 Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
 QFontDatabase: Cannot find font directory /home/mohith/Desktop/ITC_CAM/.venv/lib/python3.13/site-packages/cv2/qt/fonts.
 Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
-[OCR] variant=0 psm=6 score=0.00 | '@'
-[OCR] variant=1 psm=6 score=0.00 | '@'
-[OCR] variant=2 psm=6 score=0.00 | '3 a.\n§ t'
-[OCR] variant=2 psm=11 score=0.00 | '+\n\nye\n\n4'
-[OCR] variant=3 psm=6 score=0.00 | 'c a.\n§ t'
-[OCR] variant=3 psm=11 score=0.00 | '+f\n\nyet\n\n4'
-[OCR] variant=4 psm=6 score=0.00 | 'POS Ro tse ie i ed,\neen ese'
-[OCR] variant=4 psm=11 score=0.00 | 'og tee\n\nom\n\naS\n\naa\n\nBes\n\nRY\n\nx\n\n«\n\nue\n\nne\n\nen'
-[OCR] variant=5 psm=6 score=0.00 | 'pe TQ ts gpd\nGE PSS ee'
-[OCR] variant=5 psm=11 score=0.00 | 'og tee\n\nm\n\naS\n\naa\n\nBs\n\nKY\n\nx\n\n«\n\nue\n\nne\n\nen'
-[OCR] variant=0 psm=11 score=0.00 | 'yz:\n\neh\n\nabs.\n\n7\n\nE\n\na\n\na\n\ni\n\nes\n\nJ\n\nA\n\n‘g\n\nbie\n\nyrs'
-[OCR] variant=1 psm=11 score=0.00 | 'ayz i:\n\neh\n\nabs.\n\ni\n\nEe\n\na\n\na\n\nis\n\nae\n\n"\n\nJ\n\nA\n\n‘g\n\nbie\n\nyrs'
-[OCR] variant=2 psm=6 score=0.00 | '“aa 3 Ki FA IES OND RRR aE agg\nBR Ac er\nea\n\nbe'
-[OCR] variant=2 psm=11 score=0.00 | 'in\n\nerg\n\n*\n\ns\n\nMoe\n\nOD\n\nee\n\nMe\n\nee\n\nBas\n\na\n\noat\n\naa\n\na\n\nag\n\na\n\nbs.\n\nbr\n\nnas\n\na\n\nos'
-[OCR] variant=3 psm=6 score=0.00 | '“aa 3 Ki UR RTT: soe\nBR Ac er\nPe\nbe'
-[OCR] variant=3 psm=11 score=0.00 | 'in\n\nae\n\n*\n\ns\n\nMoke\n\nRD\n\nee\n\nMf\n\n%\n\nBas\n\na\n\noa\n\nse\n\na\n\nag\n\ng\n\nbs\n\nbr\n\nnas\n\na\n\n«'
+[OCR] variant=0 psm=6 score=0.00 | "a uw\nan Pa eee Om Hag\n\ncupeumeuoum 07 O04 O@a--\n\n_ ) ox 34105176 |\n- bg, Plo e. 7@'OR197\n, CLR! ax 49 90719 Se"
+[OCR] variant=0 psm=11 score=0.00 | "I.\n\n2\n\n+\n\nfos\n\noa\n\n™\n\nMe aw:\n\nOn hag\n\n|\n\n07 0464 C@a--\n\n38°OS 178\n\n*\n\nmn a\n\nea\n\nO'ER TD\n\n4\n\nemt 40 00 ''O Se"
+[OCR] variant=0 psm=4 score=0.00 | "= a i\ni ek\nios oo | a\nes 4a tot _\n\nmm 6m\nOn hag\n\n07 0464 C@a--\n31708676\n7103137\n\nott 40 O0'TO Se:"
+[OCR] variant=1 psm=6 score=0.00 | "a ; uw\na aan oe, eee Om Hag\n\ncupeumeueum 07 O04 C@a--\n\n_ ) ox 331051676 |\n~ fee Poe. 7@'O91927\noe en . ax 49 90719 Se"
+[OCR] variant=1 psm=11 score=0.00 | 'I.\n\n2\n\n+\n\nfos\n\neum\n\n™\n\nMe aw:\n\nOn hag\n\n|\n\n07 04 C@a--\n\n38°OS 1798\n\n*\n\na ad\n\nea\n\n7@ OR TD\n\n4\n\net 40 00710 Se'
+[OCR] variant=1 psm=4 score=0.00 | "= a |\n© ek\nPos oy | a\na 4a tot _\n\nmm 6m\nOn hag\n\n07 04 C@a--\n31708676\n74103137\n\neat 40 O0'TO Se:"
+[OCR] variant=2 psm=6 score=0.00 | 'ee — -\n-~_- eo "og gery te. ?\npenn oe cae 07 O08 o@ar\nA $11909126 ‘=\n\' 24902127\nmene 40 0019 Se:'
