@@ -64,38 +64,38 @@ class PaddleOCREngine:
     def __init__(self, lang: str = "en"):
         from paddleocr import PaddleOCR
 
-        # use_angle_cls/textline orientation off: batch codes are upright, so we
-        # skip the orientation classifier for speed. Arg names differ by version
-        # — fall back progressively to the lowest-common-denominator constructor.
+        # Orientation classifier off: batch codes are upright (saves time). Arg
+        # names differ across versions (3.x = use_textline_orientation, 2.x =
+        # use_angle_cls, and 3.x raises its OWN error type for unknown args, not
+        # TypeError) — so try the variants and catch broadly.
         self._ocr = None
+        last_err = None
         for kwargs in (
-            dict(use_angle_cls=False, lang=lang, show_log=False),
-            dict(use_angle_cls=False, lang=lang),
-            dict(lang=lang),
+            dict(use_textline_orientation=False, lang=lang),  # PaddleOCR 3.x
+            dict(use_angle_cls=False, lang=lang),             # PaddleOCR 2.x
+            dict(lang=lang),                                  # minimal
+            dict(),                                           # bare
         ):
             try:
                 self._ocr = PaddleOCR(**kwargs)
                 break
-            except TypeError:
+            except Exception as e:
+                last_err = e
                 continue
         if self._ocr is None:
-            self._ocr = PaddleOCR()
+            raise RuntimeError(f"could not construct PaddleOCR ({last_err})")
 
     def _infer(self, bgr: np.ndarray):
-        # 2.x uses .ocr(img, cls=False); 3.x prefers .predict(img).
-        try:
-            return self._ocr.ocr(bgr, cls=False)
-        except TypeError:
+        # 3.x prefers .predict(img); 2.x uses .ocr(img). Try both, catch broadly.
+        for call in (
+            lambda: self._ocr.predict(bgr),
+            lambda: self._ocr.ocr(bgr),
+        ):
             try:
-                return self._ocr.ocr(bgr)
+                return call()
             except Exception:
-                pass
-        except Exception:
-            pass
-        try:
-            return self._ocr.predict(bgr)
-        except Exception:
-            return None
+                continue
+        return None
 
     def read(self, image_rgb: np.ndarray) -> str:
         """Recognise text in `image_rgb` (H×W×3 RGB) → newline-joined string."""

@@ -35,35 +35,11 @@ def draw_result(
             # Bright cyan box around the confirmed batch code region
             cv2.rectangle(frame, (x, y), (x + rw, y + rh), (0, 230, 180), 3)
 
-    # ── Status badge (pill shape, bottom-left, always inside frame) ──────────
+    # ── Status badge: the preview shows ONLY batch-code present / absent ─────
     if defect:
-        badge_color = (220, 30, 30)
-        badge_text  = f"NO BATCH CODE"
-        _draw_pill(frame, badge_text, badge_color, w, h)
+        _draw_pill(frame, "NO BATCH CODE", (220, 30, 30), w, h)
     else:
-        badge_color = (20, 200, 80)
-        badge_text  = f"BATCH CODE OK  {confidence:.0%}"
-        _draw_pill(frame, badge_text, badge_color, w, h)
-
-        # Show first line of OCR text as a small subtitle above the badge
-        if ocr_text:
-            first_line = ocr_text.split('\n')[0][:70].strip()
-            if first_line:
-                font_scale = max(0.4, min(0.65, w / 1200))
-                thickness  = max(1, round(font_scale * 2))
-                (tw, th), _ = cv2.getTextSize(first_line, cv2.FONT_HERSHEY_SIMPLEX,
-                                              font_scale, thickness)
-                x_txt = 24
-                y_txt = h - 24 - 42 - th - 6   # sits just above the pill
-                # dark backing for readability
-                cv2.rectangle(frame,
-                              (x_txt - 6, y_txt - th - 4),
-                              (x_txt + tw + 6, y_txt + 6),
-                              (0, 0, 0), -1)
-                cv2.putText(frame, first_line,
-                            (x_txt, y_txt),
-                            cv2.FONT_HERSHEY_SIMPLEX, font_scale,
-                            (220, 220, 220), thickness, cv2.LINE_AA)
+        _draw_pill(frame, "BATCH CODE OK", (20, 200, 80), w, h)
 
     return frame
 
