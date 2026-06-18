@@ -1,17 +1,45 @@
-[1:42:43.423942559] [37312]  INFO Camera camera_manager.cpp:340 libcamera v0.7.1+rpt20260609
-[1:42:43.433552249] [37319]  INFO RPI pisp.cpp:720 libpisp version v1.5.0 01-05-2026 (05:33:53)
-[1:42:43.443223531] [37319]  INFO IPAProxy ipa_proxy.cpp:184 Using tuning file /usr/share/libcamera/ipa/rpi/pisp/imx708.json
-[1:42:43.452402822] [37319]  INFO Camera camera_manager.cpp:223 Adding camera '/base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a' for pipeline handler rpi/pisp
-[1:42:43.452446766] [37319]  INFO RPI pisp.cpp:1181 Registered camera /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a to CFE device /dev/media1 and ISP device /dev/media2 using PiSP variant BCM2712_D0
-[1:42:43.457067179] [37312]  INFO Camera camera.cpp:1216 configuring streams: (0) 1920x1080-XRGB8888/Rec709/Rec709/None/Full (1) 2304x1296-BGGR_PISP_COMP1/RAW
-[1:42:43.457824591] [37319]  INFO RPI pisp.cpp:1485 Sensor: /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a - Selected sensor format: 2304x1296-SBGGR10_1X10/RAW - Selected CFE format: 2304x1296-PC1B/RAW
+[1:47:11.603014923] [37731]  INFO Camera camera_manager.cpp:340 libcamera v0.7.1+rpt20260609
+[1:47:11.612809281] [37738]  INFO RPI pisp.cpp:720 libpisp version v1.5.0 01-05-2026 (05:33:53)
+[1:47:11.625391090] [37738]  INFO IPAProxy ipa_proxy.cpp:184 Using tuning file /usr/share/libcamera/ipa/rpi/pisp/imx708.json
+[1:47:11.635264206] [37738]  INFO Camera camera_manager.cpp:223 Adding camera '/base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a' for pipeline handler rpi/pisp
+[1:47:11.635309705] [37738]  INFO RPI pisp.cpp:1181 Registered camera /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a to CFE device /dev/media1 and ISP device /dev/media2 using PiSP variant BCM2712_D0
+[1:47:11.640079358] [37731]  INFO Camera camera.cpp:1216 configuring streams: (0) 1920x1080-XRGB8888/Rec709/Rec709/None/Full (1) 2304x1296-BGGR_PISP_COMP1/RAW
+[1:47:11.640305170] [37738]  INFO RPI pisp.cpp:1485 Sensor: /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a - Selected sensor format: 2304x1296-SBGGR10_1X10/RAW - Selected CFE format: 2304x1296-PC1B/RAW
 [Camera] picamera2 initialised (XRGB8888) at 30 fps.
 [Camera] Continuous autofocus enabled.
 [Camera] AF speed=fast, range=macro.
-[Detector] PaddleOCR unavailable (Unknown argument: show_log); falling back to Tesseract. Install with: pip install paddlepaddle paddleocr
-[Detector] Tesseract OCR ready.
-[Detector] code commit=73525ba+dirty | engine=paddle | threshold=0.55 | frame_psms=(11,) frame_max_vars=4 crop_psms=(11, 6)
+/home/mohith/Desktop/ITC_CAM/.venv/lib/python3.13/site-packages/paddle/utils/cpp_extension/extension_utils.py:718: UserWarning: No ccache found. Please be aware that recompiling all source files may be required. You can download and install ccache from: https://github.com/ccache/ccache/blob/master/doc/INSTALL.md
+  warnings.warn(warning_message)
+[32mCreating model: ('PP-LCNet_x1_0_doc_ori', None, None)[0m
+[33mChecking connectivity to the model hosters, this may take a while. To bypass this check, set `PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK` to `True`.[0m
+[32mUsing official model (PP-LCNet_x1_0_doc_ori), the model files will be automatically downloaded and saved in `/home/mohith/.paddlex/official_models/PP-LCNet_x1_0_doc_ori`.[0m
+Fetching 6 files:   0%|          | 0/6 [00:00<?, ?it/s]Fetching 6 files:  17%|█▋        | 1/6 [00:00<00:01,  3.56it/s]Fetching 6 files:  83%|████████▎ | 5/6 [00:02<00:00,  1.75it/s]Fetching 6 files: 100%|██████████| 6/6 [00:02<00:00,  2.17it/s]
+[32mCreating model: ('UVDoc', None, None)[0m
+[32mUsing official model (UVDoc), the model files will be automatically downloaded and saved in `/home/mohith/.paddlex/official_models/UVDoc`.[0m
+Fetching 6 files:   0%|          | 0/6 [00:00<?, ?it/s]Fetching 6 files:  17%|█▋        | 1/6 [00:00<00:01,  3.21it/s]Fetching 6 files:  83%|████████▎ | 5/6 [00:05<00:01,  1.21s/it]Fetching 6 files: 100%|██████████| 6/6 [00:05<00:00,  1.04it/s]
+[32mCreating model: ('PP-OCRv6_medium_det', None, None)[0m
+[32mUsing official model (PP-OCRv6_medium_det), the model files will be automatically downloaded and saved in `/home/mohith/.paddlex/official_models/PP-OCRv6_medium_det`.[0m
+Fetching 5 files:   0%|          | 0/5 [00:00<?, ?it/s]Fetching 5 files:  20%|██        | 1/5 [00:00<00:01,  2.54it/s]Fetching 5 files:  80%|████████  | 4/5 [00:07<00:02,  2.10s/it]Fetching 5 files: 100%|██████████| 5/5 [00:07<00:00,  1.58s/it]
+[32mCreating model: ('PP-OCRv6_medium_rec', None, None)[0m
+[32mUsing official model (PP-OCRv6_medium_rec), the model files will be automatically downloaded and saved in `/home/mohith/.paddlex/official_models/PP-OCRv6_medium_rec`.[0m
+Fetching 5 files:   0%|          | 0/5 [00:00<?, ?it/s]Fetching 5 files:  20%|██        | 1/5 [00:00<00:01,  2.55it/s]Fetching 5 files:  40%|████      | 2/5 [00:00<00:01,  2.39it/s]Fetching 5 files:  80%|████████  | 4/5 [00:11<00:03,  3.51s/it]Fetching 5 files: 100%|██████████| 5/5 [00:11<00:00,  2.31s/it]
+[Detector] PaddleOCR engine ready.
+[Detector] code commit=39cb55c+dirty | engine=paddle | threshold=0.55 | frame_psms=(11,) frame_max_vars=4 crop_psms=(11, 6)
 [Detector] config: WHITE_THRESHOLD=185 OCR_MIN_HEIGHT=140 DARK_FRAME_THRESHOLD=8.0 FOCUS_MIN_SHARPNESS=60.0 OCR_DEBUG=True OCR_DEBUG_IMAGES=False
 [Alert] GPIO initialised (lgpio / RP1).
 [Detector] Starting. Press 'q' or Ctrl+C to stop.
-[FRAME #1] 1920x1080 bright=82.5 sharp=282 FOCUS:OK — OCR passes follow
+[FRAME #1] 1920x1080 bright=81.4 sharp=289 FOCUS:OK — OCR passes follow
+
+
+--------------------------------------
+C++ Traceback (most recent call last):
+--------------------------------------
+No stack trace in paddle, may be caused by external reasons.
+
+----------------------
+Error Message Summary:
+----------------------
+FatalError: `Segmentation fault` is detected by the operating system.
+  [TimeInfo: *** Aborted at 1781785330 (unix time) try "date -d @1781785330" if you are using GNU date ***]
+  [SignalInfo: *** SIGSEGV (@0x0) received by PID 37731 (TID 0x7ffe597af160) from PID 0 ***]
+
