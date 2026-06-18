@@ -219,7 +219,11 @@ def _preprocessing_variants(gray: np.ndarray):
 # and run much faster than full-frame calls.
 _OCR_PSMS_FRAME   = (11,)
 _FRAME_MAX_VARS   = 4        # Otsu ×2 + CLAHE ×2; adaptive (v=4,5) skipped
-_OCR_PSMS_CROP    = (6, 11, 4, 3)
+_OCR_PSMS_CROP    = (11, 6)  # sparse + block; dropped 4/3 — too slow for live
+# Stage-2 latency caps: the no-code path must stay responsive. Worst case is
+# now _STAGE2_MAX_REGIONS × 2 grays × _STAGE2_MAX_VARS × len(_OCR_PSMS_CROP).
+_STAGE2_MAX_REGIONS = 3
+_STAGE2_MAX_VARS    = 2      # Otsu + inverted Otsu only
 
 
 def _ocr_run(image: np.ndarray, psms: tuple, max_vars: int = 0) -> tuple:
@@ -508,7 +512,11 @@ class BatchCodeDetector:
                 best_rank, best_text, best_ev = rank, text, ev
 
         # ── Stage 1: full-frame OCR ──────────────────────────────────────────
-        for max_dim in (max(h_img, w_img), 1280):
+        # Single full-res pass by default; second 1280px pass only if requested.
+        scales = [max(h_img, w_img)]
+        if config.OCR_MULTISCALE:
+            scales.append(1280)
+        for max_dim in scales:
             scale = min(1.0, max_dim / max(h_img, w_img))
             candidate = (
                 cv2.resize(frame_rgb, (int(w_img * scale), int(h_img * scale)),
@@ -524,11 +532,16 @@ class BatchCodeDetector:
                 return "OK", best_ev.score, False, [], best_text.strip()
 
         # ── Stage 2: region crop OCR (white sticker on dark packaging) ───────
-        candidates = _find_label_regions(frame_rgb)
+        # Only runs on negative frames (Stage 1 returns early on success) and is
+        # hard-capped so the no-code path can't freeze the live indicator.
+        candidates = (
+            _find_label_regions(frame_rgb)[:_STAGE2_MAX_REGIONS]
+            if config.STAGE2_ENABLED else []
+        )
         hit_regions = []
         for (x, y, rw, rh) in candidates:
             crop = frame_rgb[y:y + rh, x:x + rw]
-            text, score, ev = _ocr_run(crop, _OCR_PSMS_CROP)
+            text, score, ev = _ocr_run(crop, _OCR_PSMS_CROP, max_vars=_STAGE2_MAX_VARS)
             _consider(text, ev)
             if score >= _THRESHOLD:
                 hit_regions.append((x, y, rw, rh))

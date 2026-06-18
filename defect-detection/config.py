@@ -75,6 +75,18 @@ FLASK_HOST = os.getenv("FLASK_HOST", "0.0.0.0")
 DEV_MODE = os.getenv("DEV_MODE", "false").lower() == "true"
 DEV_CAMERA_INDEX = int(os.getenv("DEV_CAMERA_INDEX", "0"))
 
+# --- Live performance (bound OCR work per frame so the OK/DEFECT indicator
+#     updates continuously instead of freezing for tens of seconds) ---
+# Second 1280px full-frame OCR pass. Off by default for low latency — the
+# full-res pass already reads a product that fills the frame. Enable only if
+# the code sits far/small in the frame.
+OCR_MULTISCALE = os.getenv("OCR_MULTISCALE", "false").lower() == "true"
+# Stage 2 region-crop fallback (for white-sticker packaging). Direct-print
+# products are fully handled by Stage 1, so turning this OFF makes the negative
+# (no-code) path much faster. Left on by default for sticker products, but
+# hard-capped (see _STAGE2_MAX_REGIONS) so it can never blow up latency.
+STAGE2_ENABLED = os.getenv("STAGE2_ENABLED", "true").lower() == "true"
+
 # --- Debug: print raw Tesseract output to console ---
 OCR_DEBUG = os.getenv("OCR_DEBUG", "false").lower() == "true"
 # Focus quality: frames whose Laplacian variance is below this are flagged

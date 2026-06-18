@@ -1,0 +1,81 @@
+==============================================================
+ITC BATCH DETECTOR — EXACT COMMANDS TO RUN ON THE PI (in order)
+==============================================================
+
+Diagnosis: detection code is fine. The Pi frame is too SOFT (sharp~34) and
+too DARK (bright~37). A readable frame needs sharp>=80, bright ~50-120.
+Goal of the steps below: fix focus + lighting, then confirm OCR.
+
+--------------------------------------------------------------
+STEP 0 — get the latest code + activate venv (run every time)
+--------------------------------------------------------------
+cd ~/Desktop/ITC_CAM/defect-detection
+git pull origin master
+source .venv/bin/activate
+
+--------------------------------------------------------------
+STEP 1 — add a SIDE light on the batch code
+--------------------------------------------------------------
+Physical step, no command. The code is embossed into dark cardboard, so it
+only shows up with contrast. Point a lamp at a LOW/RAKING angle (from the
+side, not straight on) so the printing casts small shadows.
+
+--------------------------------------------------------------
+STEP 2 — find the sharpest focus (lens sweep)
+--------------------------------------------------------------
+Hold the product still at the working distance, then run:
+
+python tools/focus_meter.py --sweep
+
+It prints a line like:
+  -> set in .env:   AF_MODE=manual   LENS_POSITION=6.50
+Note that LENS_POSITION number.
+
+--------------------------------------------------------------
+STEP 3 — lock that focus into .env
+--------------------------------------------------------------
+nano .env
+# set (or add) these two lines, using YOUR number from step 2:
+AF_MODE=manual
+LENS_POSITION=6.50
+# save: Ctrl+O, Enter, Ctrl+X
+
+--------------------------------------------------------------
+STEP 4 — live-tune until the numbers are good
+--------------------------------------------------------------
+python tools/focus_meter.py
+
+Watch the readout. Adjust distance / lamp angle until you see roughly:
+  sharp >= 80    [OK]
+  bright 50-120
+If bright stays under ~45, add more light (or see STEP 6).
+Press Ctrl+C when good.
+
+--------------------------------------------------------------
+STEP 5 — run the detector and capture the log
+--------------------------------------------------------------
+OCR_DEBUG=true OCR_DEBUG_IMAGES=true python -u run.py --headless 2>&1 | tee output.txt
+
+Hold the product still, code facing the camera, for ~30-60 seconds.
+Press Ctrl+C to stop.
+
+Then push the results so they can be checked:
+git add output.txt data/debug
+git commit -m "run output"
+git push origin master
+
+--------------------------------------------------------------
+STEP 6 — ONLY if the frame is still too dark after lighting
+--------------------------------------------------------------
+nano .env
+# add these (start here, then adjust):
+ANALOGUE_GAIN=4.0
+EXPOSURE_TIME=20000
+# save and re-run STEP 4, then STEP 5.
+
+--------------------------------------------------------------
+OPTIONAL — test a single saved frame through the pipeline (no camera)
+--------------------------------------------------------------
+python tools/ocr_image.py data/debug/f00030_raw.jpg
+# (use any real filename printed under data/debug/)
+==============================================================
