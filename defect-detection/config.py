@@ -67,3 +67,15 @@ DEV_CAMERA_INDEX = int(os.getenv("DEV_CAMERA_INDEX", "0"))
 
 # --- Debug: print raw Tesseract output to console ---
 OCR_DEBUG = os.getenv("OCR_DEBUG", "false").lower() == "true"
+# Focus quality: frames whose Laplacian variance is below this are flagged
+# FOCUS:SOFT in the per-frame debug summary. Informational only — does not
+# change detection. A sharp text frame is typically > 100; blurred < 50.
+FOCUS_MIN_SHARPNESS = float(os.getenv("FOCUS_MIN_SHARPNESS", "60.0"))
+# Debug: also dump the raw frame + binarised OCR variants to DEBUG_DIR so the
+# images Tesseract actually sees can be inspected (verify focus/framing/threshold).
+OCR_DEBUG_IMAGES = os.getenv("OCR_DEBUG_IMAGES", "false").lower() == "true"
+# When OCR_DEBUG_IMAGES is on, dump one image set every N processed frames.
+DEBUG_IMAGE_EVERY = int(os.getenv("DEBUG_IMAGE_EVERY", "15"))
+DEBUG_DIR = os.getenv(
+    "DEBUG_DIR", os.path.join(os.path.dirname(__file__), "data", "debug")
+)

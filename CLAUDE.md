@@ -80,7 +80,7 @@ preprocessing/preprocess.py     ← draw_result: HUD overlay on frame
 alerts/alert.py                 ← AlertSystem: non-blocking GPIO LED + buzzer
 defect_logging/logger.py        ← CSV log + JPEG snapshot per defect
 dashboard/app.py                ← Flask MJPEG stream + /status JSON endpoint
-tests/test_pipeline.py          ← pytest unit tests (27 tests)
+tests/test_pipeline.py          ← pytest unit tests (28 tests)
 tools/diagnose_camera.py        ← camera format diagnostic (run with python3, not venv)
 ```
 
@@ -116,14 +116,16 @@ NN.NN/(N.NN)
 Threshold: **0.55** (set in config / `.env` as `DETECTION_THRESHOLD`).
 
 ### Two-stage scan (Stage 1 runs first — fastest path)
-1. **Stage 1** — full-frame OCR at two resolutions (full-res first, then 1280px). Uses PSM 11 (sparse text) + PSM 3. Early-exits the moment a score ≥ threshold is found. Handles direct-print cardboard where keywords and dates must be read together in one pass.
-2. **Stage 2** — region crop OCR (fallback). Finds white-sticker bounding boxes and OCRs each crop with the full PSM set (6, 11, 4, 3).
+1. **Stage 1** — full-frame OCR at two resolutions (full-res first, then 1280px). Uses PSM 11 only + 4 preprocessing variants (Otsu ×2 + CLAHE ×2; adaptive skipped — too slow on Pi). Max 16 Tesseract calls (2 grays × 4 variants × 1 PSM × 2 scales). Exits the moment score ≥ threshold.
+2. **Stage 2** — region crop OCR (fallback). Finds white-sticker bounding boxes and OCRs each crop with the full PSM set (6, 11, 4, 3) and all 6 variants. Crops are small so calls are fast.
 
 ### OCR preprocessing (hard-won)
 - Two grayscale sources are tried per image:
   - **Standard luminance** (`cv2.COLOR_RGB2GRAY`)
   - **min(G, B) channel** — for white text on dark red/maroon background: standard gray ≈ 58, min(G,B) ≈ 20, giving ~12:1 contrast vs ~4:1. Critical for dark cardboard packaging.
 - Date separators (`/`) are misread many ways on direct-print packaging: `1` (narrow stroke), `9` (top serif), `4` (two strokes merging). `_PAT_DATE` uses `[/\-\.|l1-9]?` (any digit 1-9) as the separator so `24902127`, `31105126`, and `31408126` all match their true dates.
+- Tesseract also misreads `0` (zero) as `O` (letter O) in minute fields — `07:04` → `07 O4`. `_PAT_TIME` uses `[0-5O][0-9O]` for the minutes to catch this.
+- `min(G,B)` channel is tried **first** in `_ocr_run` — for dark red ITC packaging it gives ~12:1 contrast (vs ~4:1 std gray) so it reaches threshold faster and exits early before slower std_gray variants run. Debug output: `g=0` = min_gb, `g=1` = std_gray.
 - `mrp` is accepted as a keyword fallback — "MRP Rs." always appears in the ITC batch block and survives OCR noise better than multi-word labels.
 - Tesseract must be installed system-wide: `sudo apt install tesseract-ocr`. It is NOT pip-installable in the venv.
 

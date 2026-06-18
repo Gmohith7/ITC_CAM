@@ -21,8 +21,12 @@ The region-only fallback (no Tesseract) always returns DEFECT.
 """
 
 import re
+import os
 import shutil
 import platform
+import subprocess
+from collections import namedtuple
+
 import cv2
 import numpy as np
 import config
@@ -50,8 +54,10 @@ _PAT_KEYWORD = re.compile(
     re.IGNORECASE,
 )
 
-# Time printed before the batch code: HH:MM or HH MM (OCR sometimes drops ':')
-_PAT_TIME = re.compile(r'\b([01]?\d|2[0-3])[: ][0-5]\d\b')
+# Time printed before the batch code: HH:MM or HH MM (OCR sometimes drops ':').
+# Minutes digits: Tesseract often misreads '0' as 'O' (letter O) at small sizes,
+# so [0-5O][0-9O] accepts both.  '07 O4' and '07:04' both match → 07:04.
+_PAT_TIME = re.compile(r'\b([01]?\d|2[0-3])[: ][0-5O][0-9O]\b')
 
 # Alphanumeric batch code: mix of uppercase letters + digits, 4-10 chars
 # e.g. 01B11, 06B11, 09A11, 2007B11
@@ -66,36 +72,69 @@ _PAT_MRP = re.compile(r'\d+\.\d{2}\s*/\s*\(\s*\d+\.\d{2,3}\s*\)')
 
 _THRESHOLD = config.DETECTION_THRESHOLD   # default 0.55
 
+# Full per-result breakdown — carries *why* a result scored what it did, so the
+# debug log can show exactly which evidence was present and which gate failed.
+_Evidence = namedtuple(
+    "_Evidence",
+    "score has_keyword has_time n_dates has_batch has_mrp dates time keyword",
+)
 
-def _score_text(text: str) -> float:
+
+def _evaluate(text: str) -> "_Evidence":
     """
-    Evidence-based confidence score in [0.0, 1.0].
+    Evidence-based confidence score in [0.0, 1.0] plus the supporting matches.
 
     Hard AND-gate — two valid paths:
       A: label keyword (batch/pkd/use by/mrp/…) + at least one date.
       B: printed time (HH:MM) + at least two dates.
          Covers dark cardboard where all label text is garbled but the
          numeric block (time, PKD date, Use By date) still reads through.
-    Returns 0.0 if neither path is satisfied.
+    score is 0.0 if neither path is satisfied.
     """
-    has_keyword = bool(_PAT_KEYWORD.search(text))
-    has_time    = bool(_PAT_TIME.search(text))
-    dates       = _PAT_DATE.findall(text)
+    kw_m   = _PAT_KEYWORD.search(text)
+    time_m = _PAT_TIME.search(text)
+    dates  = _PAT_DATE.findall(text)
+    has_batch = bool(_PAT_BATCH_CODE.search(text))
+    has_mrp   = bool(_PAT_MRP.search(text))
+
+    has_keyword = bool(kw_m)
+    has_time    = bool(time_m)
     n_dates     = len(dates)
 
-    if not ((has_keyword and n_dates >= 1) or (has_time and n_dates >= 2)):
-        return 0.0
+    if (has_keyword and n_dates >= 1) or (has_time and n_dates >= 2):
+        score = 0.40                           # base
+        score += 0.20 * min(n_dates, 2)        # up to +0.40 for PKD + Use By
+        if has_time:
+            score += 0.10
+        if has_batch:
+            score += 0.10
+        if has_mrp:
+            score += 0.10
+        score = min(round(score, 2), 1.0)
+    else:
+        score = 0.0
 
-    score = 0.40                           # base
-    score += 0.20 * min(n_dates, 2)        # up to +0.40 for PKD + Use By
-    if has_time:
-        score += 0.10
-    if _PAT_BATCH_CODE.search(text):
-        score += 0.10
-    if _PAT_MRP.search(text):
-        score += 0.10
+    return _Evidence(
+        score, has_keyword, has_time, n_dates, has_batch, has_mrp,
+        dates,
+        time_m.group(0) if time_m else None,
+        kw_m.group(0) if kw_m else None,
+    )
 
-    return min(round(score, 2), 1.0)
+
+def _score_text(text: str) -> float:
+    """Confidence score in [0.0, 1.0] — thin wrapper over _evaluate()."""
+    return _evaluate(text).score
+
+
+def _richness(ev: "_Evidence") -> int:
+    """
+    Tie-break rank for results that all score 0.0, so the per-frame debug
+    summary surfaces the *most promising* fragment (e.g. one with a date over
+    one with pure noise). Purely diagnostic — never affects the OK/DEFECT call.
+    """
+    return (ev.n_dates * 3 + ev.has_time * 2 + ev.has_keyword * 2
+            + ev.has_batch + ev.has_mrp)
 
 
 # ── Image preprocessing ───────────────────────────────────────────────────────
@@ -121,6 +160,22 @@ def _min_gb(frame: np.ndarray) -> np.ndarray:
     if frame.ndim == 3 and frame.shape[2] >= 3:
         return np.minimum(frame[:, :, 1], frame[:, :, 2])
     return _to_gray(frame)
+
+
+def _frame_quality(gray: np.ndarray) -> tuple:
+    """
+    (brightness, sharpness) for a grayscale frame — pure diagnostics.
+
+      brightness : mean pixel value 0-255. Too low = underexposed / lens cap;
+                   too high = blown-out glare. OCR needs the text in between.
+      sharpness  : variance of the Laplacian, the standard focus measure.
+                   High = crisp edges (in focus); low = blurred / out of focus.
+                   If OCR is pure noise AND sharpness is low, the lens — not the
+                   threshold logic — is the problem.
+    """
+    brightness = float(np.mean(gray))
+    sharpness  = float(cv2.Laplacian(gray, cv2.CV_64F).var())
+    return brightness, sharpness
 
 
 def _preprocessing_variants(gray: np.ndarray):
@@ -156,50 +211,75 @@ def _preprocessing_variants(gray: np.ndarray):
     yield cv2.bitwise_not(adapt)
 
 
-# PSM 11 (sparse text) is best for full-frame packaging — finds text anywhere
-# without layout assumptions. PSM 3 (auto) is a complementary fallback.
-# Region crops also try PSM 6 (single block) and PSM 4 (single column).
-_OCR_PSMS_FRAME = (11, 3)
-_OCR_PSMS_CROP  = (6, 11, 4, 3)
+# Stage 1 (full-frame): PSM 11 only — sparse-text mode is best for unstructured
+# packaging; PSM 3 rarely adds signal and doubles the call count.
+# Stage 1 also caps at 4 preprocessing variants (skips adaptive — slowest,
+# rarely needed on a full 1920×1080 frame).
+# Stage 2 (region crops): full PSM set + all 6 variants since crops are small
+# and run much faster than full-frame calls.
+_OCR_PSMS_FRAME   = (11,)
+_FRAME_MAX_VARS   = 4        # Otsu ×2 + CLAHE ×2; adaptive (v=4,5) skipped
+_OCR_PSMS_CROP    = (6, 11, 4, 3)
 
 
-def _ocr_run(image: np.ndarray, psms: tuple) -> tuple:
+def _ocr_run(image: np.ndarray, psms: tuple, max_vars: int = 0) -> tuple:
     """
-    Run Tesseract on `image` across all preprocessing variants and given PSMs.
-    Returns (text, score) for the highest-scoring combination found.
+    Run Tesseract on `image` across preprocessing variants and given PSMs.
+    Returns (text, score, evidence) for the best combination found.
     Exits early the moment a score at or above the detection threshold is reached.
 
-    Two grayscale sources are tried per image:
-      • Standard luminance gray
-      • min(G, B) channel — far better contrast for white text on coloured backgrounds
+    "Best" is ranked by (score, _richness) so that when every pass scores 0.0
+    we still return the *most promising* fragment (e.g. one that found a date)
+    instead of an empty string — critical for diagnosing why nothing passed.
+
+    Two grayscale sources are tried per image (min_gb first):
+      • g=0  min(G, B) channel — ~12:1 contrast for white text on dark red/maroon
+      • g=1  Standard luminance gray — fallback
+
+    max_vars: cap on preprocessing variants per gray source (0 = no cap).
+              Set to _FRAME_MAX_VARS for full-frame calls to skip slow
+              adaptive variants and keep Stage 1 under ~16 Tesseract calls.
     """
     import pytesseract
 
     std_gray = _to_gray(image)
     mg_gray  = _min_gb(image)
-    # Skip the second source if it's identical (grayscale input)
-    grays = [std_gray, mg_gray] if not np.array_equal(std_gray, mg_gray) else [std_gray]
+    # min_gb first: for ITC dark red/maroon packaging it gives ~12:1 contrast
+    # vs ~4:1 with standard gray, so it reaches threshold faster → earlier exit.
+    # Skip the second source if it's identical (grayscale or single-channel input).
+    grays = [mg_gray, std_gray] if not np.array_equal(std_gray, mg_gray) else [std_gray]
 
-    best_text, best_score = "", 0.0
+    best_text, best_ev = "", _evaluate("")
+    best_rank = (best_ev.score, _richness(best_ev))
 
     for g_idx, gray in enumerate(grays):
         for v_idx, variant in enumerate(_preprocessing_variants(gray)):
+            if max_vars and v_idx >= max_vars:
+                break
             for psm in psms:
                 cfg = f'--psm {psm} --oem 3'
                 try:
-                    text  = pytesseract.image_to_string(variant, config=cfg)
-                    score = _score_text(text)
-                    if config.OCR_DEBUG and text.strip():
+                    text = pytesseract.image_to_string(variant, config=cfg)
+                    ev   = _evaluate(text)
+                    if config.OCR_DEBUG:
+                        flags = (f"kw={int(ev.has_keyword)} t={int(ev.has_time)} "
+                                 f"d={ev.n_dates} bc={int(ev.has_batch)} "
+                                 f"mrp={int(ev.has_mrp)}")
+                        # Collapse whitespace so the raw \n\n soup is readable.
+                        preview = " ".join(text.split())[:90] or "(empty)"
                         print(f"[OCR] g={g_idx} v={v_idx} psm={psm} "
-                              f"score={score:.2f} | {text.strip()[:120]!r}")
-                    if score > best_score:
-                        best_score, best_text = score, text
-                    if best_score >= _THRESHOLD:
-                        return best_text, best_score
-                except Exception:
+                              f"score={ev.score:.2f} {flags} | {preview!r}")
+                    rank = (ev.score, _richness(ev))
+                    if rank > best_rank:
+                        best_rank, best_text, best_ev = rank, text, ev
+                    if ev.score >= _THRESHOLD:
+                        return best_text, best_ev.score, best_ev
+                except Exception as exc:
+                    if config.OCR_DEBUG:
+                        print(f"[OCR] g={g_idx} v={v_idx} psm={psm} ERROR: {exc}")
                     continue
 
-    return best_text, best_score
+    return best_text, best_ev.score, best_ev
 
 
 # ── Sticker / label region finder ────────────────────────────────────────────
@@ -270,6 +350,84 @@ def _nms_regions(regions: list) -> list:
     return keep
 
 
+# ── Diagnostics ───────────────────────────────────────────────────────────────
+
+def _startup_diagnostics() -> None:
+    """
+    Print the running code version + active OCR config once at startup.
+
+    A stale-run (Pi running old code) is the single easiest way to waste a debug
+    cycle. Logging the git commit and the live PSM/threshold settings makes it
+    obvious at the top of output.txt exactly what produced the run below.
+    """
+    try:
+        repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        commit = subprocess.check_output(
+            ["git", "rev-parse", "--short", "HEAD"], cwd=repo,
+            stderr=subprocess.DEVNULL, text=True,
+        ).strip()
+        if subprocess.run(["git", "diff", "--quiet"], cwd=repo).returncode != 0:
+            commit += "+dirty"
+    except Exception:
+        commit = "unknown"
+
+    print(f"[Detector] code commit={commit} | threshold={_THRESHOLD} | "
+          f"frame_psms={_OCR_PSMS_FRAME} frame_max_vars={_FRAME_MAX_VARS} "
+          f"crop_psms={_OCR_PSMS_CROP}")
+    print(f"[Detector] config: WHITE_THRESHOLD={config.WHITE_THRESHOLD} "
+          f"OCR_MIN_HEIGHT={config.OCR_MIN_HEIGHT} "
+          f"DARK_FRAME_THRESHOLD={config.DARK_FRAME_THRESHOLD} "
+          f"FOCUS_MIN_SHARPNESS={config.FOCUS_MIN_SHARPNESS} "
+          f"OCR_DEBUG={config.OCR_DEBUG} OCR_DEBUG_IMAGES={config.OCR_DEBUG_IMAGES}")
+
+
+def _print_frame_summary(frame_n, w, h, brightness, sharpness, stage,
+                         ev: "_Evidence", text: str, n_regions=None) -> None:
+    """
+    One consolidated line per processed frame — the headline diagnostic.
+
+    Tells us, at a glance: was the frame in focus and exposed (sharp/bright),
+    how far the best OCR pass got (score), which evidence survived (kw/time/
+    dates/batch/mrp), and the actual best text. When detection fails this line
+    says *why*: blurry vs. dark vs. "read fine but only 1 date so gate B failed".
+    """
+    focus   = "OK" if sharpness >= config.FOCUS_MIN_SHARPNESS else "SOFT"
+    dates_s = ",".join(ev.dates[:3]) if ev.dates else "-"
+    reg     = f" regions={n_regions}" if n_regions is not None else ""
+    preview = " ".join(text.split())[:120] or "(no text)"
+    print(f"[FRAME #{frame_n}] {w}x{h} bright={brightness:.1f} sharp={sharpness:.0f} "
+          f"FOCUS:{focus} | stage={stage}{reg} score={ev.score:.2f} | "
+          f"kw={int(ev.has_keyword)} time={ev.time or '-'} "
+          f"dates={ev.n_dates}[{dates_s}] batch={int(ev.has_batch)} "
+          f"mrp={int(ev.has_mrp)} | best={preview!r}")
+
+
+def _dump_debug_images(frame_rgb: np.ndarray, frame_n: int) -> None:
+    """
+    Save the raw frame + both gray sources + the binarised variants Tesseract
+    sees, so legibility can be judged by eye (is the text even there / sharp /
+    surviving the threshold?). Gated by OCR_DEBUG_IMAGES; throttled by caller.
+    """
+    try:
+        os.makedirs(config.DEBUG_DIR, exist_ok=True)
+        stamp = f"f{frame_n:05d}"
+        cv2.imwrite(os.path.join(config.DEBUG_DIR, f"{stamp}_raw.jpg"),
+                    cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR))
+        for name, gray in (("mingb", _min_gb(frame_rgb)), ("std", _to_gray(frame_rgb))):
+            cv2.imwrite(os.path.join(config.DEBUG_DIR, f"{stamp}_{name}.jpg"), gray)
+            for v_idx, variant in enumerate(_preprocessing_variants(gray)):
+                if v_idx >= _FRAME_MAX_VARS:
+                    break
+                cv2.imwrite(
+                    os.path.join(config.DEBUG_DIR, f"{stamp}_{name}_v{v_idx}.jpg"),
+                    variant,
+                )
+        print(f"[debug-img] wrote frame #{frame_n} set to {config.DEBUG_DIR}")
+    except Exception as exc:
+        if config.OCR_DEBUG:
+            print(f"[debug-img] dump failed: {exc}")
+
+
 # ── Main detector ─────────────────────────────────────────────────────────────
 
 class BatchCodeDetector:
@@ -286,6 +444,8 @@ class BatchCodeDetector:
 
     def __init__(self):
         self._tesseract_ok = self._init_tesseract()
+        self._frame_n = 0
+        _startup_diagnostics()
 
     def _init_tesseract(self) -> bool:
         try:
@@ -305,24 +465,34 @@ class BatchCodeDetector:
         Two-stage batch code detection on `frame_rgb` (H×W×3 RGB uint8).
         Without Tesseract, always returns DEFECT — never a false positive.
 
-        Stage 1 — Full-frame OCR at two resolutions:
-          • Full resolution (e.g. 1920×1080): small label text ("Batch No.:",
-            "PKD.:") lands at ~25 px — Tesseract's viable lower floor.
-          • 1280 px max-dim: the large value text (dates, batch code) becomes
-            ~53 px — a complementary pass in case full-res misses it.
-          Uses only PSM 11/3 (sparse text / auto) — best for unstructured
-          packaging layouts.  Exits as soon as either scale clears the threshold.
+        Stage 1 — Full-frame OCR at two resolutions (PSM 11, 4 variants each):
+          • Full resolution (e.g. 1920×1080): label keywords ("Batch No.:",
+            "PKD.:") land at ~25 px — Tesseract's viable lower floor.
+          • 1280 px max-dim: date/batch-code values land at ~17 px — useful
+            when the product fills only part of the frame.
+          Adaptive preprocessing skipped (too slow on Pi); exits as soon as
+          either scale clears the threshold.  Total: ≤16 Tesseract calls.
 
         Stage 2 — Region crop OCR:
           Fallback for white-sticker packaging.  Each detected region is
-          cropped and re-OCR'd at higher relative resolution using the full
-          set of PSM modes.
+          cropped and re-OCR'd at higher relative resolution using all
+          PSM modes and all 6 preprocessing variants.
         """
         if not self._tesseract_ok:
             return "DEFECT", 0.0, True, [], "OCR unavailable — install Tesseract"
 
-        best_text, best_score = "", 0.0
+        self._frame_n += 1
         h_img, w_img = frame_rgb.shape[:2]
+        brightness, sharpness = _frame_quality(_to_gray(frame_rgb))
+
+        best_text, best_ev = "", _evaluate("")
+        best_rank = (best_ev.score, _richness(best_ev))
+
+        def _consider(text, ev):
+            nonlocal best_text, best_ev, best_rank
+            rank = (ev.score, _richness(ev))
+            if rank > best_rank:
+                best_rank, best_text, best_ev = rank, text, ev
 
         # ── Stage 1: full-frame OCR ──────────────────────────────────────────
         for max_dim in (max(h_img, w_img), 1280):
@@ -332,27 +502,35 @@ class BatchCodeDetector:
                            interpolation=cv2.INTER_AREA)
                 if scale < 1.0 else frame_rgb
             )
-            text, score = _ocr_run(candidate, _OCR_PSMS_FRAME)
-            if score > best_score:
-                best_score, best_text = score, text
-            if best_score >= _THRESHOLD:
-                return "OK", best_score, False, [], best_text.strip()
+            text, score, ev = _ocr_run(candidate, _OCR_PSMS_FRAME, max_vars=_FRAME_MAX_VARS)
+            _consider(text, ev)
+            if best_ev.score >= _THRESHOLD:
+                if config.OCR_DEBUG:
+                    _print_frame_summary(self._frame_n, w_img, h_img, brightness,
+                                         sharpness, 1, best_ev, best_text)
+                return "OK", best_ev.score, False, [], best_text.strip()
 
         # ── Stage 2: region crop OCR (white sticker on dark packaging) ───────
         candidates = _find_label_regions(frame_rgb)
         hit_regions = []
         for (x, y, rw, rh) in candidates:
             crop = frame_rgb[y:y + rh, x:x + rw]
-            text, score = _ocr_run(crop, _OCR_PSMS_CROP)
-            if score > best_score:
-                best_score, best_text = score, text
+            text, score, ev = _ocr_run(crop, _OCR_PSMS_CROP)
+            _consider(text, ev)
             if score >= _THRESHOLD:
                 hit_regions.append((x, y, rw, rh))
 
-        found = best_score >= _THRESHOLD
+        found = best_ev.score >= _THRESHOLD
+
+        if config.OCR_DEBUG:
+            _print_frame_summary(self._frame_n, w_img, h_img, brightness, sharpness,
+                                 2, best_ev, best_text, n_regions=len(candidates))
+        if config.OCR_DEBUG_IMAGES and self._frame_n % config.DEBUG_IMAGE_EVERY == 0:
+            _dump_debug_images(frame_rgb, self._frame_n)
+
         return (
             "OK"     if found else "DEFECT",
-            best_score if found else 0.0,
+            best_ev.score if found else 0.0,
             not found,
             hit_regions if found else [],
             best_text.strip(),

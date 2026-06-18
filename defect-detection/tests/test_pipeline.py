@@ -150,6 +150,13 @@ def test_score_time_plus_one_date_is_zero():
     assert _score_text("14:47\n28/09/25") == 0.0
 
 
+def test_score_time_with_letter_O_in_minutes():
+    """'O' (letter O) misread as '0' in minutes: '07 O4' must match as 07:04."""
+    from model.inference import _score_text
+    # '07 O4' = time, '24102127' + '31408126' = two dates → time+2dates gate
+    assert _score_text("07 O4\n24102127\n31408126") >= 0.55
+
+
 # ── Batch code detector ───────────────────────────────────────────────────────
 
 def test_detector_blank_frame_is_defect():
