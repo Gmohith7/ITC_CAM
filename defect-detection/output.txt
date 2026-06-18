@@ -1,17 +1,17 @@
-[1:37:03.265478911] [36880]  INFO Camera camera_manager.cpp:340 libcamera v0.7.1+rpt20260609
-[1:37:03.286477263] [36887]  INFO RPI pisp.cpp:720 libpisp version v1.5.0 01-05-2026 (05:33:53)
-[1:37:03.303458674] [36887]  INFO IPAProxy ipa_proxy.cpp:184 Using tuning file /usr/share/libcamera/ipa/rpi/pisp/imx708.json
-[1:37:03.315165715] [36887]  INFO Camera camera_manager.cpp:223 Adding camera '/base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a' for pipeline handler rpi/pisp
-[1:37:03.315203549] [36887]  INFO RPI pisp.cpp:1181 Registered camera /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a to CFE device /dev/media1 and ISP device /dev/media2 using PiSP variant BCM2712_D0
-[1:37:03.329611692] [36880]  INFO Camera camera.cpp:1216 configuring streams: (0) 1920x1080-XRGB8888/Rec709/Rec709/None/Full (1) 2304x1296-BGGR_PISP_COMP1/RAW
-[1:37:03.329858452] [36887]  INFO RPI pisp.cpp:1485 Sensor: /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a - Selected sensor format: 2304x1296-SBGGR10_1X10/RAW - Selected CFE format: 2304x1296-PC1B/RAW
+[1:42:43.423942559] [37312]  INFO Camera camera_manager.cpp:340 libcamera v0.7.1+rpt20260609
+[1:42:43.433552249] [37319]  INFO RPI pisp.cpp:720 libpisp version v1.5.0 01-05-2026 (05:33:53)
+[1:42:43.443223531] [37319]  INFO IPAProxy ipa_proxy.cpp:184 Using tuning file /usr/share/libcamera/ipa/rpi/pisp/imx708.json
+[1:42:43.452402822] [37319]  INFO Camera camera_manager.cpp:223 Adding camera '/base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a' for pipeline handler rpi/pisp
+[1:42:43.452446766] [37319]  INFO RPI pisp.cpp:1181 Registered camera /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a to CFE device /dev/media1 and ISP device /dev/media2 using PiSP variant BCM2712_D0
+[1:42:43.457067179] [37312]  INFO Camera camera.cpp:1216 configuring streams: (0) 1920x1080-XRGB8888/Rec709/Rec709/None/Full (1) 2304x1296-BGGR_PISP_COMP1/RAW
+[1:42:43.457824591] [37319]  INFO RPI pisp.cpp:1485 Sensor: /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a - Selected sensor format: 2304x1296-SBGGR10_1X10/RAW - Selected CFE format: 2304x1296-PC1B/RAW
 [Camera] picamera2 initialised (XRGB8888) at 30 fps.
 [Camera] Continuous autofocus enabled.
 [Camera] AF speed=fast, range=macro.
-[Detector] PaddleOCR unavailable (cannot import name 'Sentinel' from 'typing_extensions' (/usr/lib/python3/dist-packages/typing_extensions.py)); falling back to Tesseract. Install with: pip install paddlepaddle paddleocr
+[Detector] PaddleOCR unavailable (Unknown argument: show_log); falling back to Tesseract. Install with: pip install paddlepaddle paddleocr
 [Detector] Tesseract OCR ready.
-[Detector] code commit=5c6ab70+dirty | engine=paddle | threshold=0.55 | frame_psms=(11,) frame_max_vars=4 crop_psms=(11, 6)
+[Detector] code commit=73525ba+dirty | engine=paddle | threshold=0.55 | frame_psms=(11,) frame_max_vars=4 crop_psms=(11, 6)
 [Detector] config: WHITE_THRESHOLD=185 OCR_MIN_HEIGHT=140 DARK_FRAME_THRESHOLD=8.0 FOCUS_MIN_SHARPNESS=60.0 OCR_DEBUG=True OCR_DEBUG_IMAGES=False
 [Alert] GPIO initialised (lgpio / RP1).
 [Detector] Starting. Press 'q' or Ctrl+C to stop.
-[FRAME #1] 1920x1080 bright=84.3 sharp=280 FOCUS:OK — OCR passes follow
+[FRAME #1] 1920x1080 bright=82.5 sharp=282 FOCUS:OK — OCR passes follow
