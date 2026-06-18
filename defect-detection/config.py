@@ -20,6 +20,16 @@ AF_SPEED = os.getenv("AF_SPEED", "fast").lower()
 # AF search range: "normal" (typical distances), "macro" (close-ups only), "full" (macro->infinity).
 AF_RANGE = os.getenv("AF_RANGE", "macro").lower()
 
+# --- Camera exposure (optional; only applied when set) ---
+# For dim stations where auto-exposure leaves the frame too dark for OCR
+# (target frame brightness ~50-120). Leave empty to keep full auto-exposure.
+# Manual shutter time in microseconds (e.g. 20000 = 1/50 s). Empty = auto.
+EXPOSURE_TIME = os.getenv("EXPOSURE_TIME", "")
+# Analogue gain, ISO-like (e.g. 2.0, 4.0). Higher = brighter but noisier. Empty = auto.
+ANALOGUE_GAIN = os.getenv("ANALOGUE_GAIN", "")
+# ISP brightness shift, -1.0 .. 1.0 (0 = default). Empty = default.
+BRIGHTNESS = os.getenv("BRIGHTNESS", "")
+
 # --- Tesseract OCR ---
 # On Linux/Pi, tesseract is found via PATH automatically.
 # On Windows, set TESSERACT_CMD in .env if not in a standard location.

@@ -53,6 +53,7 @@ class CameraCapture:
         self.cam.start()
         print(f"[Camera] picamera2 initialised ({self._picam_fmt}) at {config.FRAME_RATE} fps.")
         self._apply_focus()
+        self._apply_exposure()
 
     def _apply_focus(self):
         """Configure the Camera Module 3 autofocus lens.
@@ -110,6 +111,37 @@ class CameraCapture:
                 print(f"[Camera] AF speed={config.AF_SPEED}, range={config.AF_RANGE}.")
             except Exception as e:
                 print(f"[Camera] AF speed/range not applied ({e}).")
+
+    def _apply_exposure(self):
+        """
+        Optional manual exposure / brightness for dim stations (opt-in via .env).
+
+        Dark frames (measured ~37 mean vs ~64 on a readable reference) starve the
+        OCR of contrast. Setting EXPOSURE_TIME and/or ANALOGUE_GAIN disables AEC
+        and brightens the frame; BRIGHTNESS nudges the ISP output. All empty by
+        default → full auto-exposure, behaviour unchanged.
+        """
+        ctrls = {}
+        try:
+            if str(getattr(config, "EXPOSURE_TIME", "")).strip():
+                ctrls["AeEnable"] = False
+                ctrls["ExposureTime"] = int(float(config.EXPOSURE_TIME))
+            if str(getattr(config, "ANALOGUE_GAIN", "")).strip():
+                ctrls["AeEnable"] = False
+                ctrls["AnalogueGain"] = float(config.ANALOGUE_GAIN)
+            if str(getattr(config, "BRIGHTNESS", "")).strip():
+                ctrls["Brightness"] = float(config.BRIGHTNESS)
+        except ValueError as e:
+            print(f"[Camera] Bad exposure/brightness value ({e}); using auto-exposure.")
+            return
+
+        if not ctrls:
+            return
+        try:
+            self.cam.set_controls(ctrls)
+            print(f"[Camera] Manual exposure controls applied: {ctrls}")
+        except Exception as e:
+            print(f"[Camera] Exposure controls not applied ({e}); using auto-exposure.")
 
     def _ensure_system_dist_packages(self):
         """Add picamera2's system dist-packages to sys.path if not already there."""
