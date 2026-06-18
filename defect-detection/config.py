@@ -31,9 +31,11 @@ ANALOGUE_GAIN = os.getenv("ANALOGUE_GAIN", "")
 BRIGHTNESS = os.getenv("BRIGHTNESS", "")
 
 # --- OCR engine ---
-# "tesseract" (default; fast, needs clean binary) or "paddle" (PaddleOCR;
-# far more accurate on low-contrast/embossed print, runs on-device, slower).
-# Install paddle with: pip install paddlepaddle paddleocr
+#   "tesseract" (default; fast, needs clean binary)
+#   "rapidocr"  (PP-OCR on onnxruntime; accurate AND reliable on Pi/ARM)
+#               install: pip install rapidocr_onnxruntime
+#   "paddle"    (PaddleOCR; accurate but paddlepaddle native inference can
+#               segfault on Pi 5 / ARM / Python 3.13) install: pip install paddlepaddle paddleocr
 OCR_ENGINE = os.getenv("OCR_ENGINE", "tesseract").lower()
 
 # --- Tesseract OCR ---

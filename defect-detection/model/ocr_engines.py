@@ -128,3 +128,57 @@ class PaddleOCREngine:
             bgr = image_rgb
         result = self._infer(bgr)
         return "\n".join(_extract_lines(result))
+
+
+def _extract_rapid_lines(out) -> list:
+    """Pull text strings from a RapidOCR result across its API versions."""
+    if out is None:
+        return []
+    # rapidocr (new package): result object exposing .txts
+    txts = getattr(out, "txts", None)
+    if txts:
+        return [str(t) for t in txts]
+    # rapidocr_onnxruntime: returns (result, elapse); result = [[box, text, score], ...]
+    result = out[0] if isinstance(out, tuple) else out
+    if not result:
+        return []
+    lines = []
+    for entry in result:
+        try:
+            lines.append(str(entry[1]))   # [box, text, score]
+        except Exception:
+            continue
+    return lines
+
+
+class RapidOCREngine:
+    """
+    PP-OCR detection + recognition running on onnxruntime (via RapidOCR) instead
+    of paddlepaddle. Same models/accuracy, but no paddle native code — the
+    reliable choice on Raspberry Pi / ARM where paddlepaddle inference segfaults.
+
+    Install on the Pi venv:  pip install rapidocr_onnxruntime
+    """
+
+    def __init__(self):
+        try:
+            from rapidocr_onnxruntime import RapidOCR
+        except Exception:
+            from rapidocr import RapidOCR          # newer renamed package
+        self._ocr = RapidOCR()
+        # Warm up so first-call latency is paid here, not mid-stream.
+        try:
+            self.read(np.zeros((64, 192, 3), dtype=np.uint8))
+        except Exception:
+            pass
+
+    def read(self, image_rgb: np.ndarray) -> str:
+        if image_rgb.ndim == 3 and image_rgb.shape[2] >= 3:
+            bgr = cv2.cvtColor(image_rgb[:, :, :3], cv2.COLOR_RGB2BGR)
+        else:
+            bgr = image_rgb
+        try:
+            out = self._ocr(bgr)
+        except Exception:
+            return ""
+        return "\n".join(_extract_rapid_lines(out))

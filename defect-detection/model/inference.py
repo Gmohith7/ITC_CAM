@@ -459,14 +459,16 @@ class BatchCodeDetector:
 
     def __init__(self):
         self._frame_n = 0
-        self._paddle = None
+        self._engine = None          # neural OCR engine (paddle/rapidocr) or None
         self._tesseract_ok = False
 
-        # PaddleOCR is the accurate on-device path; Tesseract is the fast default
-        # and the fallback if Paddle is requested but unavailable.
+        # Neural engines (paddle / rapidocr) are the accurate path; Tesseract is
+        # the fast default and the fallback if the chosen engine is unavailable.
         if config.OCR_ENGINE == "paddle":
-            self._paddle = self._init_paddle()
-        if self._paddle is None:
+            self._engine = self._init_paddle()
+        elif config.OCR_ENGINE == "rapidocr":
+            self._engine = self._init_rapidocr()
+        if self._engine is None:
             self._tesseract_ok = self._init_tesseract()
 
         _startup_diagnostics()
@@ -480,6 +482,17 @@ class BatchCodeDetector:
         except Exception as e:
             print(f"[Detector] PaddleOCR unavailable ({e}); falling back to Tesseract. "
                   f"Install with: pip install paddlepaddle paddleocr")
+            return None
+
+    def _init_rapidocr(self):
+        try:
+            from model.ocr_engines import RapidOCREngine
+            eng = RapidOCREngine()
+            print("[Detector] RapidOCR (onnxruntime) engine ready.")
+            return eng
+        except Exception as e:
+            print(f"[Detector] RapidOCR unavailable ({e}); falling back to Tesseract. "
+                  f"Install with: pip install rapidocr_onnxruntime")
             return None
 
     def _init_tesseract(self) -> bool:
@@ -501,17 +514,17 @@ class BatchCodeDetector:
         active OCR engine. With no working engine, always returns DEFECT — never
         a false positive.
         """
-        if self._paddle is not None:
-            return self._predict_paddle(frame_rgb)
+        if self._engine is not None:
+            return self._predict_engine(frame_rgb)
         if not self._tesseract_ok:
             return "DEFECT", 0.0, True, [], "OCR unavailable — install an OCR engine"
         return self._predict_tesseract(frame_rgb)
 
-    def _predict_paddle(self, frame_rgb: np.ndarray) -> tuple:
+    def _predict_engine(self, frame_rgb: np.ndarray) -> tuple:
         """
-        Single-pass detection with PaddleOCR — it detects + recognises text on
-        the raw frame, so no binarisation/PSM sweep is needed. Recognised text
-        is scored by the same evidence gate as Tesseract.
+        Single-pass detection with a neural engine (paddle/rapidocr) — it detects
+        + recognises text on the raw frame, so no binarisation/PSM sweep is
+        needed. Recognised text is scored by the same evidence gate as Tesseract.
         """
         self._frame_n += 1
         h_img, w_img = frame_rgb.shape[:2]
@@ -519,11 +532,11 @@ class BatchCodeDetector:
         if config.OCR_DEBUG:
             _print_frame_header(self._frame_n, w_img, h_img, brightness, sharpness)
 
-        text = self._paddle.read(frame_rgb)
+        text = self._engine.read(frame_rgb)
         ev   = _evaluate(text)
         if config.OCR_DEBUG:
             _print_frame_summary(self._frame_n, w_img, h_img, brightness, sharpness,
-                                 "paddle", ev, text)
+                                 config.OCR_ENGINE, ev, text)
         if config.OCR_DEBUG_IMAGES and self._frame_n % config.DEBUG_IMAGE_EVERY == 0:
             _dump_debug_images(frame_rgb, self._frame_n)
 
