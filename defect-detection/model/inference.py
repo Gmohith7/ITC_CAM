@@ -381,6 +381,17 @@ def _startup_diagnostics() -> None:
           f"OCR_DEBUG={config.OCR_DEBUG} OCR_DEBUG_IMAGES={config.OCR_DEBUG_IMAGES}")
 
 
+def _print_frame_header(frame_n, w, h, brightness, sharpness) -> None:
+    """
+    Printed BEFORE the OCR passes so focus/exposure is captured even if the run
+    is killed mid-frame. brightness/sharpness here is the single most important
+    triage signal: if sharp is low, fix the lens before touching OCR logic.
+    """
+    focus = "OK" if sharpness >= config.FOCUS_MIN_SHARPNESS else "SOFT"
+    print(f"[FRAME #{frame_n}] {w}x{h} bright={brightness:.1f} sharp={sharpness:.0f} "
+          f"FOCUS:{focus} — OCR passes follow")
+
+
 def _print_frame_summary(frame_n, w, h, brightness, sharpness, stage,
                          ev: "_Evidence", text: str, n_regions=None) -> None:
     """
@@ -484,6 +495,8 @@ class BatchCodeDetector:
         self._frame_n += 1
         h_img, w_img = frame_rgb.shape[:2]
         brightness, sharpness = _frame_quality(_to_gray(frame_rgb))
+        if config.OCR_DEBUG:
+            _print_frame_header(self._frame_n, w_img, h_img, brightness, sharpness)
 
         best_text, best_ev = "", _evaluate("")
         best_rank = (best_ev.score, _richness(best_ev))
