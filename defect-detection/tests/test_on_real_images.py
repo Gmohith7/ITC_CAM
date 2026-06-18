@@ -33,8 +33,8 @@ KNOWN_OK = [
 def detector():
     from model.inference import BatchCodeDetector
     det = BatchCodeDetector()
-    if not det._tesseract_ok:
-        pytest.skip("Tesseract not installed — skipping real-image tests")
+    if det._engine is None:
+        pytest.skip("RapidOCR not installed — skipping real-image tests")
     return det
 
 

@@ -178,11 +178,11 @@ def test_detector_blank_frame_is_defect():
     assert confidence == 0.0
 
 
-def test_detector_no_tesseract_is_strict_defect():
-    """Without Tesseract, detector must always return DEFECT (no false OK)."""
+def test_detector_no_engine_is_strict_defect():
+    """Without an OCR engine, detector must always return DEFECT (no false OK)."""
     from model.inference import BatchCodeDetector
     det = BatchCodeDetector()
-    det._tesseract_ok = False   # simulate missing Tesseract
+    det._engine = None   # simulate missing OCR engine
     white = np.full((480, 640, 3), 255, dtype=np.uint8)
     label, confidence, is_defect, regions, text = det.predict(white)
     assert label == "DEFECT"
@@ -273,13 +273,10 @@ def test_alert_debounce():
 def test_config_values():
     import config
     assert config.FRAME_RATE > 0
-    assert isinstance(config.TESSERACT_CMD, str)
     assert isinstance(config.LOG_DIR, str)
-    assert 0 < config.WHITE_THRESHOLD < 256
-    assert config.OCR_MIN_HEIGHT > 0
+    assert config.OCR_MAX_SIDE >= 0
     assert 0.0 < config.DETECTION_THRESHOLD < 1.0
     assert config.DARK_FRAME_THRESHOLD >= 0
-    assert config.REGION_PADDING >= 0
     assert config.ALERT_DURATION_S >= 0
 
 

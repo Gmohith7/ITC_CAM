@@ -4,10 +4,9 @@ opencv-python
 Pillow
 flask
 python-dotenv
-pytesseract
+rapidocr_onnxruntime    # OCR engine (PP-OCR on onnxruntime)
 
 # Pi only (install via apt/pip as noted in requirements-pi.txt):
 # picamera2  -> sudo apt install python3-picamera2
 # gpiozero   -> pip install gpiozero
 # lgpio      -> sudo apt install python3-lgpio lgpio
-# tesseract  -> sudo apt install tesseract-ocr

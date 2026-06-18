@@ -31,8 +31,8 @@ KNOWN_OK = [
 
 def main():
     detector = BatchCodeDetector()
-    if not detector._tesseract_ok:
-        print("[OCR Report] Tesseract not available. Exiting.")
+    if detector._engine is None:
+        print("[OCR Report] OCR engine not available. Exiting.")
         sys.exit(1)
 
     files = sorted([f for f in os.listdir(TEST_IMAGES_DIR) if f.lower().endswith((".jpg", ".jpeg", ".png"))])

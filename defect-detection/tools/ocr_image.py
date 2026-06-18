@@ -42,8 +42,8 @@ def main():
     print(f"[ocr_image] {path}  shape={rgb.shape}")
 
     detector = BatchCodeDetector()
-    if not detector._tesseract_ok:
-        print("[ocr_image] Tesseract not available — install tesseract-ocr to OCR.")
+    if detector._engine is None:
+        print("[ocr_image] OCR engine not available — pip install rapidocr_onnxruntime")
         sys.exit(1)
 
     label, confidence, is_defect, regions, text = detector.predict(rgb)

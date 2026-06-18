@@ -151,7 +151,7 @@ class CameraCapture:
         dist-packages, so adding the path at the END is enough to import them —
         while keeping the venv's own packages at higher priority. Inserting at the
         front shadows venv packages with older system copies (e.g. an old
-        typing_extensions that breaks PaddleOCR's import).
+        typing_extensions that breaks the OCR engine's imports).
         """
         import glob
         candidates = [

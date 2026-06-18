@@ -86,7 +86,7 @@ tools/diagnose_camera.py        ← camera format diagnostic (run with python3, 
 
 ## Detection algorithm
 
-The detector is **strict** — it requires co-occurrence of specific evidence to produce an OK result. A lone date, lone keyword, bright region alone, or no Tesseract = always DEFECT.
+The detector is **strict** — it requires the batch block's signature to produce an OK result. A lone date, a lone keyword, or no OCR engine = always DEFECT (see Scoring below).
 
 ### ITC batch code block structure (all products)
 ```
@@ -116,19 +116,12 @@ a lone date or MRP line) can never trigger a false OK.
 
 Threshold: **0.55** (set in config / `.env` as `DETECTION_THRESHOLD`).
 
-### Two-stage scan (Stage 1 runs first — fastest path)
-1. **Stage 1** — full-frame OCR at two resolutions (full-res first, then 1280px). Uses PSM 11 only + 4 preprocessing variants (Otsu ×2 + CLAHE ×2; adaptive skipped — too slow on Pi). Max 16 Tesseract calls (2 grays × 4 variants × 1 PSM × 2 scales). Exits the moment score ≥ threshold.
-2. **Stage 2** — region crop OCR (fallback). Finds white-sticker bounding boxes and OCRs each crop with the full PSM set (6, 11, 4, 3) and all 6 variants. Crops are small so calls are fast.
-
-### OCR preprocessing (hard-won)
-- Two grayscale sources are tried per image:
-  - **Standard luminance** (`cv2.COLOR_RGB2GRAY`)
-  - **min(G, B) channel** — for white text on dark red/maroon background: standard gray ≈ 58, min(G,B) ≈ 20, giving ~12:1 contrast vs ~4:1. Critical for dark cardboard packaging.
-- Date separators (`/`) are misread many ways on direct-print packaging: `1` (narrow stroke), `9` (top serif), `4` (two strokes merging). `_PAT_DATE` uses `[/\-\.|l1-9]?` (any digit 1-9) as the separator so `24902127`, `31105126`, and `31408126` all match their true dates.
-- Tesseract also misreads `0` (zero) as `O` (letter O) in minute fields — `07:04` → `07 O4`. `_PAT_TIME` uses `[0-5O][0-9O]` for the minutes to catch this.
-- `min(G,B)` channel is tried **first** in `_ocr_run` — for dark red ITC packaging it gives ~12:1 contrast (vs ~4:1 std gray) so it reaches threshold faster and exits early before slower std_gray variants run. Debug output: `g=0` = min_gb, `g=1` = std_gray.
-- `mrp` is accepted as a keyword fallback — "MRP Rs." always appears in the ITC batch block and survives OCR noise better than multi-word labels.
-- Tesseract must be installed system-wide: `sudo apt install tesseract-ocr`. It is NOT pip-installable in the venv.
+### OCR engine — RapidOCR (PP-OCR on onnxruntime)
+- **One pass per frame.** RapidOCR detects + recognises all text on the frame in a single call; the evidence gate (`_evaluate`) decides OK/DEFECT. No binarisation, no PSM sweep, no region finder — those Tesseract-era stages were removed.
+- **Install:** `pip install rapidocr_onnxruntime` (in the venv). It bundles the PP-OCR ONNX models; no `apt` package needed. Paddle/Tesseract are gone — paddlepaddle segfaults on Pi 5 / ARM / Python 3.13, Tesseract was too weak on the embossed dark-cardboard print.
+- **Do NOT set `OMP_NUM_THREADS=1`** — it throttles onnxruntime to a single core (~10 s/frame instead of ~1–2 s). onnxruntime uses all cores by default.
+- **Speed:** `OCR_MAX_SIDE` (default 960) downscales the frame before inference — fewer/smaller text boxes ⇒ much lower lag; the large batch digits stay readable.
+- The regex tolerances remain because OCR still mis-renders the direct-print digits: `_PAT_DATE` accepts any digit 1-9 as a `/` separator substitute (`24902127`, `31105126`, `31408126` all match); `_PAT_TIME` accepts `O` for `0` in minutes (`07 O4` → `07:04`).
 
 ## Key config values (.env / config.py)
 
@@ -144,7 +137,8 @@ OCR_MIN_HEIGHT=140          # upscale OCR crops shorter than this
 DARK_FRAME_THRESHOLD=8.0    # skip frames darker than this (camera warming up)
 LOG_SNAPSHOTS=true          # save JPEG of each defect frame
 ALERT_DURATION_S=1.0        # GPIO pulse duration
-OCR_DEBUG=false             # print raw Tesseract output per variant to console
+OCR_DEBUG=false             # print per-frame OCR result + focus/evidence diagnostics
+OCR_MAX_SIDE=960            # downscale longest frame side before OCR (lower = faster)
 ```
 
 ## GPIO notes
@@ -162,7 +156,7 @@ Located in `test_images/` at the project root. These are real ITC product photos
 
 - **Colour was wrong for many iterations** — root cause was Pi 5 BGRX pixel layout. Resolved in commit `171631f`.
 - **Camera not focusing** — `AF_RANGE=normal` starts at ~30 cm; changed default to `macro` (~10-30 cm) for inspection distances.
-- **"NO BATCH CODE" on clearly visible text** — Tesseract was not installed (`sudo apt install tesseract-ocr`). After install, dates were misread (/ → 9, 1, or 4); fixed in `_PAT_DATE` with `[/\-\.|l1-9]?` separator. Stage 1 was OCRing individual text lines; fixed by running full-frame first. On dark cardboard all label text was garbled but time+dates survived — fixed by adding `time + 2 dates` as a second AND-gate path.
+- **"NO BATCH CODE" on clearly visible text (history)** — root cause was frame quality (out of focus + too dark); a raking side light fixed it (`sharp` 34→300+). The OCR engine evolved Tesseract → (PaddleOCR, segfaults on Pi) → **RapidOCR**, which reads the block reliably. The `_PAT_DATE` / `_PAT_TIME` tolerances for mis-rendered `/` and `O` separators remain useful and were kept.
 - **OCR returned pure noise / always DEFECT (dark cardboard)** — root cause was **frame quality, not detection logic**. The captured frame measured `sharp≈34 / bright≈37` (FOCUS:SOFT, too dark); the same pipeline reads a `sharp≈83 / bright≈64` frame perfectly (full-frame inverted-Otsu renders the whole batch block cleanly). Fix was **physical: a raking/side light** on the embossed code, which gave continuous AF enough contrast to lock. Known-good operating point after lighting: **`sharp≈307 / bright≈92` with continuous AF + auto-exposure** — no manual exposure override needed (would only add noise). Diagnose with `tools/focus_meter.py` (live `bright`/`sharp` meter; `--sweep` finds the sharpest manual `LensPosition`). The per-frame `[FRAME #n] ... FOCUS:OK/SOFT` line in `OCR_DEBUG=true` runs is the fastest triage: low `sharp` ⇒ fix the lens/light, not the OCR code.
 - `picamera2` cannot be installed in the venv via pip on Pi 5 — must use the system apt package and inject the path.
 - `diagnose_camera.py` must be run with `python3` (system), not `python` (venv), for the same reason.

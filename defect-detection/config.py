@@ -30,33 +30,13 @@ ANALOGUE_GAIN = os.getenv("ANALOGUE_GAIN", "")
 # ISP brightness shift, -1.0 .. 1.0 (0 = default). Empty = default.
 BRIGHTNESS = os.getenv("BRIGHTNESS", "")
 
-# --- OCR engine ---
-#   "tesseract" (default; fast, needs clean binary)
-#   "rapidocr"  (PP-OCR on onnxruntime; accurate AND reliable on Pi/ARM)
-#               install: pip install rapidocr_onnxruntime
-#   "paddle"    (PaddleOCR; accurate but paddlepaddle native inference can
-#               segfault on Pi 5 / ARM / Python 3.13) install: pip install paddlepaddle paddleocr
-OCR_ENGINE = os.getenv("OCR_ENGINE", "tesseract").lower()
-# Neural OCR (paddle/rapidocr): downscale the frame so its longest side is at
-# most this many px before inference. Fewer/smaller text boxes = much faster
-# (lower lag), and the large batch-code digits stay readable. 0 = no downscale.
+# --- OCR (RapidOCR / PP-OCR on onnxruntime) ---
+# Downscale the frame so its longest side is at most this many px before
+# inference. Fewer/smaller text boxes = much faster (lower lag); the large
+# batch-code digits stay readable. 0 = no downscale.
 OCR_MAX_SIDE = int(os.getenv("OCR_MAX_SIDE", "960"))
 
-# --- Tesseract OCR ---
-# On Linux/Pi, tesseract is found via PATH automatically.
-# On Windows, set TESSERACT_CMD in .env if not in a standard location.
-TESSERACT_CMD = os.getenv("TESSERACT_CMD", r"C:\Program Files\Tesseract-OCR\tesseract.exe")
-
 # --- Detection tuning ---
-# Minimum OCR region height (pixels); smaller regions are upscaled before OCR.
-OCR_MIN_HEIGHT = int(os.getenv("OCR_MIN_HEIGHT", "140"))
-# White-label brightness threshold (0-255); pixels above this are treated as "white sticker".
-WHITE_THRESHOLD = int(os.getenv("WHITE_THRESHOLD", "185"))
-# Morphological kernel size for sticker region detection (width, height in pixels).
-MORPH_KERNEL_W = int(os.getenv("MORPH_KERNEL_W", "28"))
-MORPH_KERNEL_H = int(os.getenv("MORPH_KERNEL_H", "14"))
-# Padding added around each detected sticker region before OCR (pixels).
-REGION_PADDING = int(os.getenv("REGION_PADDING", "14"))
 # Confidence threshold to declare a batch code present.
 DETECTION_THRESHOLD = float(os.getenv("DETECTION_THRESHOLD", "0.55"))
 # Minimum average frame brightness before OCR is attempted (0-255).
@@ -87,26 +67,13 @@ FLASK_HOST = os.getenv("FLASK_HOST", "0.0.0.0")
 DEV_MODE = os.getenv("DEV_MODE", "false").lower() == "true"
 DEV_CAMERA_INDEX = int(os.getenv("DEV_CAMERA_INDEX", "0"))
 
-# --- Live performance (bound OCR work per frame so the OK/DEFECT indicator
-#     updates continuously instead of freezing for tens of seconds) ---
-# Second 1280px full-frame OCR pass. Off by default for low latency — the
-# full-res pass already reads a product that fills the frame. Enable only if
-# the code sits far/small in the frame.
-OCR_MULTISCALE = os.getenv("OCR_MULTISCALE", "false").lower() == "true"
-# Stage 2 region-crop fallback (for white-sticker packaging). Direct-print
-# products are fully handled by Stage 1, so turning this OFF makes the negative
-# (no-code) path much faster. Left on by default for sticker products, but
-# hard-capped (see _STAGE2_MAX_REGIONS) so it can never blow up latency.
-STAGE2_ENABLED = os.getenv("STAGE2_ENABLED", "true").lower() == "true"
-
-# --- Debug: print raw Tesseract output to console ---
+# --- Debug: print per-frame OCR result + diagnostics to console ---
 OCR_DEBUG = os.getenv("OCR_DEBUG", "false").lower() == "true"
 # Focus quality: frames whose Laplacian variance is below this are flagged
 # FOCUS:SOFT in the per-frame debug summary. Informational only — does not
 # change detection. A sharp text frame is typically > 100; blurred < 50.
 FOCUS_MIN_SHARPNESS = float(os.getenv("FOCUS_MIN_SHARPNESS", "60.0"))
-# Debug: also dump the raw frame + binarised OCR variants to DEBUG_DIR so the
-# images Tesseract actually sees can be inspected (verify focus/framing/threshold).
+# Debug: also dump the raw frame to DEBUG_DIR so focus/framing can be inspected.
 OCR_DEBUG_IMAGES = os.getenv("OCR_DEBUG_IMAGES", "false").lower() == "true"
 # When OCR_DEBUG_IMAGES is on, dump one image set every N processed frames.
 DEBUG_IMAGE_EVERY = int(os.getenv("DEBUG_IMAGE_EVERY", "15"))
