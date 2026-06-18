@@ -1,14 +1,17 @@
-[0:12:24.610188100] [31768]  INFO Camera camera_manager.cpp:340 libcamera v0.7.1+rpt20260609
-[0:12:24.622052016] [31781]  INFO RPI pisp.cpp:720 libpisp version v1.5.0 01-05-2026 (05:33:53)
-[0:12:24.635691842] [31781]  INFO IPAProxy ipa_proxy.cpp:184 Using tuning file /usr/share/libcamera/ipa/rpi/pisp/imx708.json
-[0:12:24.647662497] [31781]  INFO Camera camera_manager.cpp:223 Adding camera '/base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a' for pipeline handler rpi/pisp
-[0:12:24.647713282] [31781]  INFO RPI pisp.cpp:1181 Registered camera /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a to CFE device /dev/media1 and ISP device /dev/media2 using PiSP variant BCM2712_D0
-[0:12:24.651801051] [31768]  INFO Camera camera.cpp:1216 configuring streams: (0) 1920x1080-XRGB8888/Rec709/Rec709/None/Full (1) 2304x1296-BGGR_PISP_COMP1/RAW
-[0:12:24.652033956] [31781]  INFO RPI pisp.cpp:1485 Sensor: /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a - Selected sensor format: 2304x1296-SBGGR10_1X10/RAW - Selected CFE format: 2304x1296-PC1B/RAW
+.venv) mohith@mohith:~/Desktop/ITC_CAM/defect-detection $ OCR_DEBUG=true python -u run.py 2>&1 | tee output.txt
+[0:34:09.686505831] [32389]  INFO Camera camera_manager.cpp:340 libcamera v0.7.1+rpt20260609
+[0:34:09.696522048] [32399]  INFO RPI pisp.cpp:720 libpisp version v1.5.0 01-05-2026 (05:33:53)
+[0:34:09.712197977] [32399]  INFO IPAProxy ipa_proxy.cpp:184 Using tuning file /usr/share/libcamera/ipa/rpi/pisp/imx708.json
+[0:34:09.721238928] [32399]  INFO Camera camera_manager.cpp:223 Adding camera '/base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a' for pipeline handler rpi/pisp
+[0:34:09.721292686] [32399]  INFO RPI pisp.cpp:1181 Registered camera /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a to CFE device /dev/media1 and ISP device /dev/media2 using PiSP variant BCM2712_D0
+[0:34:09.727502855] [32389]  INFO Camera camera.cpp:1216 configuring streams: (0) 1920x1080-XRGB8888/Rec709/Rec709/None/Full (1) 2304x1296-BGGR_PISP_COMP1/RAW
+[0:34:09.727772130] [32399]  INFO RPI pisp.cpp:1485 Sensor: /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a - Selected sensor format: 2304x1296-SBGGR10_1X10/RAW - Selected CFE format: 2304x1296-PC1B/RAW
 [Camera] picamera2 initialised (XRGB8888) at 30 fps.
 [Camera] Continuous autofocus enabled.
 [Camera] AF speed=fast, range=macro.
 [Detector] Tesseract OCR ready.
+[Detector] code commit=37f55ab+dirty | threshold=0.55 | frame_psms=(11,) frame_max_vars=4 crop_psms=(6, 11, 4, 3)
+[Detector] config: WHITE_THRESHOLD=185 OCR_MIN_HEIGHT=140 DARK_FRAME_THRESHOLD=8.0 FOCUS_MIN_SHARPNESS=60.0 OCR_DEBUG=True OCR_DEBUG_IMAGES=False
 [Alert] GPIO initialised (lgpio / RP1).
 [Detector] Starting. Press 'q' or Ctrl+C to stop.
 QFontDatabase: Cannot find font directory /home/mohith/Desktop/ITC_CAM/.venv/lib/python3.13/site-packages/cv2/qt/fonts.
@@ -21,9 +24,17 @@ QFontDatabase: Cannot find font directory /home/mohith/Desktop/ITC_CAM/.venv/lib
 Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
 QFontDatabase: Cannot find font directory /home/mohith/Desktop/ITC_CAM/.venv/lib/python3.13/site-packages/cv2/qt/fonts.
 Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
-[OCR] g=0 v=0 psm=11 score=0.00 | 'D> «&\n\nemnng\n\n@? o¢@\n\nOat\n\n""8O-6\n\npe\n\n2° Oe\n\nanh\n\n""@ Ser\n\nsf\n\n>\n\n4\n\nf\n\n£'
-[OCR] g=0 v=0 psm=3 score=0.00 | '@? o¢@\n""8O-6\n\noe be\n\n“= *\n: Pe :\ni «\n\nOat\n\nse\n\n“ih\n\na\n*\nMe\n\né'
-[OCR] g=0 v=1 psm=11 score=0.00 | 'D> f&\n\nemnng\n\n@? o6@\n\nOat\n\n""8O-F6\n\n>t\n\n2° Oe\n\namb\n\n""@ Ser\n\nsf\n\n>\n\n4\n\nf\n\n£'
-[OCR] g=0 v=1 psm=3 score=0.00 | '@? o6@\n""8O-F6\n\noe be\n\n“= *\n: Pe :\ni «\n\nOat\n\nse\n\n“ih\n\na\n*\nMe\n\né'
-[OCR] g=0 v=2 psm=11 score=0.00 | '* &\n\n**»\n\na”\n\nD> @®&\n\n;\n\nnoon =\n\n»\n\n@ 90am\n\nwe ee\n\nty\n\n43%\n\nFEE\n\n4\n\niia:  ]\n\ni |\n\non\n\nay pyr'
-[OCR] g=0 v=3 psm=11 score=0.00 | '* &\n\n**»\n\na”\n\nD> @®&\n\n;\n\nnoon =\n\n]\n\n@ 90am\n\nwe ee\n\nhy\n\n47%\n\nFEE\n\n4\n\naiiates  ]\n\ni |\n\nan\n\nay pyr'
+[OCR] g=0 v=0 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'at; er +8 1 Oe ~ © t¢ J t te,'
+[OCR] g=0 v=1 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'at; er +8 1 Oar ~ # t¢ t te,'
+[OCR] g=0 v=2 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '4, are. »el by iA pew «(fh Som #+.% fess Seed i | ne’ ad ed LTTE'
+[OCR] g=0 v=3 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '4, are. ae hw yh pemenp «(fh Som #+.% fess Seed i | ae’ al ed LATTE'
+[OCR] g=1 v=0 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'D> 8 & PMB ivy wee A OQ § Ogre > « » 6 ‘tt 8@ et t¢ #¢g oO.'
+[OCR] g=1 v=1 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'D> 8 & CMB ivy wemwne OQ §£ Og > « » 6 ‘t 8@ et BE #¢g oO:'
+[OCR] g=1 v=2 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'a a a <aee % nee 6 adsute Gam 47% E } Polak |'
+[OCR] g=1 v=3 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'a ae a ene mS eee 63 adsuke Can 47% E } Polak |'
+[OCR] g=0 v=0 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'e-eavense +8 £{ Gar. a 4 13 t te.'
+[OCR] g=0 v=1 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'ditties +8 £{ © a-- a 4 13 t te.'
+[OCR] g=0 v=2 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'ag wontie ae at tase oom sar | se" */5/2/-12/; ee'
+[OCR] g=0 v=3 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'ag wontie ae at tase oom cart | SS */5/2/°12/; eae'
+[OCR] g=1 v=0 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '—_ « PMB sy +* #8 Ogee >« a ¢ 9 ‘ 6 bs s aa'
+[OCR] g=1 v=1 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '—_ « PMB sy +* #8 OG ee >« i ¢ 9 ‘ 6 bs s aa'
