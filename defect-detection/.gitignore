@@ -7,6 +7,8 @@ __pycache__/
 .env
 data/raw/
 data/results/
+data/debug/
+data/analysis/
 .pytest_cache/
 *.egg-info/
 dist/
