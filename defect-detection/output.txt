@@ -1,30 +1,30 @@
-[1:58:19.927305938] [39658]  INFO Camera camera_manager.cpp:340 libcamera v0.7.1+rpt20260609
-[1:58:19.938165727] [39665]  INFO RPI pisp.cpp:720 libpisp version v1.5.0 01-05-2026 (05:33:53)
-[1:58:19.952968155] [39665]  INFO IPAProxy ipa_proxy.cpp:184 Using tuning file /usr/share/libcamera/ipa/rpi/pisp/imx708.json
-[1:58:19.963313650] [39665]  INFO Camera camera_manager.cpp:223 Adding camera '/base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a' for pipeline handler rpi/pisp
-[1:58:19.963350927] [39665]  INFO RPI pisp.cpp:1181 Registered camera /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a to CFE device /dev/media1 and ISP device /dev/media2 using PiSP variant BCM2712_D0
-[1:58:19.970637429] [39658]  INFO Camera camera.cpp:1216 configuring streams: (0) 1920x1080-XRGB8888/Rec709/Rec709/None/Full (1) 2304x1296-BGGR_PISP_COMP1/RAW
-[1:58:19.970976909] [39665]  INFO RPI pisp.cpp:1485 Sensor: /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a - Selected sensor format: 2304x1296-SBGGR10_1X10/RAW - Selected CFE format: 2304x1296-PC1B/RAW
+[2:03:18.085194580] [41186]  INFO Camera camera_manager.cpp:340 libcamera v0.7.1+rpt20260609
+[2:03:18.097498994] [41193]  INFO RPI pisp.cpp:720 libpisp version v1.5.0 01-05-2026 (05:33:53)
+[2:03:18.107264818] [41193]  INFO IPAProxy ipa_proxy.cpp:184 Using tuning file /usr/share/libcamera/ipa/rpi/pisp/imx708.json
+[2:03:18.117280734] [41193]  INFO Camera camera_manager.cpp:223 Adding camera '/base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a' for pipeline handler rpi/pisp
+[2:03:18.117327512] [41193]  INFO RPI pisp.cpp:1181 Registered camera /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a to CFE device /dev/media1 and ISP device /dev/media2 using PiSP variant BCM2712_D0
+[2:03:18.122068637] [41186]  INFO Camera camera.cpp:1216 configuring streams: (0) 1920x1080-XRGB8888/Rec709/Rec709/None/Full (1) 2304x1296-BGGR_PISP_COMP1/RAW
+[2:03:18.122301525] [41193]  INFO RPI pisp.cpp:1485 Sensor: /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a - Selected sensor format: 2304x1296-SBGGR10_1X10/RAW - Selected CFE format: 2304x1296-PC1B/RAW
 [Camera] picamera2 initialised (XRGB8888) at 30 fps.
 [Camera] Continuous autofocus enabled.
 [Camera] AF speed=fast, range=macro.
-/home/mohith/Desktop/ITC_CAM/.venv/lib/python3.13/site-packages/paddle/utils/cpp_extension/extension_utils.py:718: UserWarning: No ccache found. Please be aware that recompiling all source files may be required. You can download and install ccache from: https://github.com/ccache/ccache/blob/master/doc/INSTALL.md
-  warnings.warn(warning_message)
-[32mCreating model: ('PP-OCRv6_medium_det', None, None)[0m
-[32mModel files already exist. Using cached files. To redownload, please delete the directory manually: `/home/mohith/.paddlex/official_models/PP-OCRv6_medium_det`.[0m
-[32mCreating model: ('PP-OCRv6_medium_rec', None, None)[0m
-[32mModel files already exist. Using cached files. To redownload, please delete the directory manually: `/home/mohith/.paddlex/official_models/PP-OCRv6_medium_rec`.[0m
-
-
---------------------------------------
-C++ Traceback (most recent call last):
---------------------------------------
-No stack trace in paddle, may be caused by external reasons.
-
-----------------------
-Error Message Summary:
-----------------------
-FatalError: `Segmentation fault` is detected by the operating system.
-  [TimeInfo: *** Aborted at 1781785956 (unix time) try "date -d @1781785956" if you are using GNU date ***]
-  [SignalInfo: *** SIGSEGV (@0x0) received by PID 39658 (TID 0x7ffe6460f160) from PID 0 ***]
-
+[0;93m2026-06-18 18:07:31.799003120 [W:onnxruntime:Default, device_discovery.cc:283 GetGpuDevices] Failed to detect devices under "/sys/class/drm/card1": device_discovery.cc:93 ReadFileContents Failed to open file: "/sys/class/drm/card1/device/vendor"[m
+[0;93m2026-06-18 18:07:31.799080990 [W:onnxruntime:Default, device_discovery.cc:283 GetGpuDevices] Failed to detect devices under "/sys/class/drm/card0": device_discovery.cc:93 ReadFileContents Failed to open file: "/sys/class/drm/card0/device/vendor"[m
+[Detector] RapidOCR (onnxruntime) engine ready.
+[Detector] code commit=4b2d622+dirty | engine=rapidocr | threshold=0.55 | frame_psms=(11,) frame_max_vars=4 crop_psms=(11, 6)
+[Detector] config: WHITE_THRESHOLD=185 OCR_MIN_HEIGHT=140 DARK_FRAME_THRESHOLD=8.0 FOCUS_MIN_SHARPNESS=60.0 OCR_DEBUG=True OCR_DEBUG_IMAGES=False
+[Alert] GPIO initialised (lgpio / RP1).
+[Detector] Starting. Press 'q' or Ctrl+C to stop.
+[FRAME #1] 1920x1080 bright=77.1 sharp=270 FOCUS:OK — OCR passes follow
+[FRAME #1] 1920x1080 bright=77.1 sharp=270 FOCUS:OK | stage=rapidocr score=1.00 | kw=1 time=07:04 dates=2[31105126,24102/27] batch=1 mrp=0 | best='CHOCOCREME(38.%)(SUGARREFINEDPAMOEINREFINEDPALMILCOCOASOLISEMUFIE RINGSUBSTANCES(CHOCOLATE),ARTIFICIALFLAVOURING FORBRAN'
+[FRAME #2] 1920x1080 bright=77.6 sharp=281 FOCUS:OK — OCR passes follow
+[FRAME #2] 1920x1080 bright=77.6 sharp=281 FOCUS:OK | stage=rapidocr score=0.90 | kw=1 time=- dates=2[31/05/26,24/02/27] batch=1 mrp=0 | best='CHOCOCRME38.0%)UGARREFINEDPALMOEINEFINEDPAMILCOCOASOLISMUIFIE RINGSUBSTANCES(CHOCOLATE),ARTIFICIALFLAVOURING JDENUICAL F'
+[FRAME #3] 1920x1080 bright=77.8 sharp=282 FOCUS:OK — OCR passes follow
+[FRAME #3] 1920x1080 bright=77.8 sharp=282 FOCUS:OK | stage=rapidocr score=0.90 | kw=1 time=- dates=2[31/05126,24/02/27] batch=1 mrp=0 | best='CHOCOCRME38.%)UGAREFINEDALMOEINEFNEDAMLCOCOAOMUFIE RINGSUBSTANCES(CHOCOLATE),ARTIFICIALFLAVOURING FORBRAND OWNER VHEATFL'
+[FRAME #4] 1920x1080 bright=77.6 sharp=291 FOCUS:OK — OCR passes follow
+[FRAME #4] 1920x1080 bright=77.6 sharp=291 FOCUS:OK | stage=rapidocr score=1.00 | kw=1 time=07:04 dates=2[31105126,24102127] batch=1 mrp=0 | best='REME380 SUGRFIDAMEINFNMOOAOSMUFE NGSUBSTANCES(CHOCOLATE),ARTIFICIALFLAVOURING FORBRAND OWNER HYDROGENATEDVEGETABLEOIL,SU'
+[FRAME #5] 1920x1080 bright=77.1 sharp=287 FOCUS:OK — OCR passes follow
+[FRAME #5] 1920x1080 bright=77.1 sharp=287 FOCUS:OK | stage=rapidocr score=0.90 | kw=1 time=- dates=2[31105/26,24/02/27] batch=1 mrp=0 | best='CREME38.0% RFMNMOAUF NGSUBSTANCES(CHOCOLATE),ARTIFICIALFLAVOURING FORBRAND OWNER EATFLOUR) HYDROGENATEDVEGETABLEOILSUGAR'
+[FRAME #6] 1920x1080 bright=85.9 sharp=253 FOCUS:OK — OCR passes follow
+[FRAME #6] 1920x1080 bright=85.9 sharp=253 FOCUS:OK | stage=rapidocr score=0.90 | kw=1 time=- dates=2[31/05126,24102127] batch=1 mrp=0 | best="OWNER'S FOR BRAND ADDRESS,MANUFACTURING AND/OR PACKAGING UNITS 69g FSSAI LICENSE NUMBER COCREME38:%)SUGAREFNEDPAMOEINFIN"
+[FRAME #7] 1920x1080 bright=82.2 sharp=331 FOCUS:OK — OCR passes follow
