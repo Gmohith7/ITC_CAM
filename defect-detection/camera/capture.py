@@ -144,7 +144,15 @@ class CameraCapture:
             print(f"[Camera] Exposure controls not applied ({e}); using auto-exposure.")
 
     def _ensure_system_dist_packages(self):
-        """Add picamera2's system dist-packages to sys.path if not already there."""
+        """
+        Make picamera2's system dist-packages importable from inside the venv.
+
+        APPEND (not insert-at-front): picamera2/libcamera live only in the system
+        dist-packages, so adding the path at the END is enough to import them —
+        while keeping the venv's own packages at higher priority. Inserting at the
+        front shadows venv packages with older system copies (e.g. an old
+        typing_extensions that breaks PaddleOCR's import).
+        """
         import glob
         candidates = [
             "/usr/lib/python3/dist-packages",
@@ -152,7 +160,7 @@ class CameraCapture:
         ]
         for path in candidates:
             if os.path.isdir(path) and path not in sys.path:
-                sys.path.insert(0, path)
+                sys.path.append(path)
 
     def _init_webcam(self):
         self._mode = "webcam"
