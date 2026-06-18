@@ -1,1 +1,1 @@
-OCR_DEBUG=true python -u run.py 2>&1 | tee output.txt
+OCR_DEBUG=true python -u run.py --headless 2>&1 | tee output.txt
