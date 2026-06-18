@@ -12,6 +12,15 @@ Install on the Pi (inside the venv):
 First run downloads the detection/recognition models (needs internet once).
 """
 
+import os
+
+# Limit native threading BEFORE paddle is imported — multithreaded paddle on ARM
+# (Pi) is a common SIGSEGV source, especially when called from a worker thread.
+os.environ.setdefault("OMP_NUM_THREADS", "1")
+os.environ.setdefault("FLAGS_use_mkldnn", "0")
+# Skip PaddleOCR's online model-source connectivity check (faster, offline-safe).
+os.environ.setdefault("PADDLE_PDX_DISABLE_MODEL_SOURCE_CHECK", "True")
+
 import cv2
 import numpy as np
 
@@ -68,13 +77,19 @@ class PaddleOCREngine:
         # names differ across versions (3.x = use_textline_orientation, 2.x =
         # use_angle_cls, and 3.x raises its OWN error type for unknown args, not
         # TypeError) — so try the variants and catch broadly.
+        # Strip the 3.x pipeline to detect+recognise ONLY. The default doc
+        # orientation (PP-LCNet_doc_ori) and especially doc unwarping (UVDoc)
+        # models are unneeded for a flat, upright code AND are a known ARM/Pi
+        # segfault source — disable them.
         self._ocr = None
         last_err = None
         for kwargs in (
-            dict(use_textline_orientation=False, lang=lang),  # PaddleOCR 3.x
-            dict(use_angle_cls=False, lang=lang),             # PaddleOCR 2.x
-            dict(lang=lang),                                  # minimal
-            dict(),                                           # bare
+            dict(use_doc_orientation_classify=False, use_doc_unwarping=False,
+                 use_textline_orientation=False, lang=lang),   # PaddleOCR 3.x
+            dict(use_textline_orientation=False, lang=lang),   # 3.x (older)
+            dict(use_angle_cls=False, lang=lang),              # PaddleOCR 2.x
+            dict(lang=lang),                                   # minimal
+            dict(),                                            # bare
         ):
             try:
                 self._ocr = PaddleOCR(**kwargs)
@@ -84,6 +99,14 @@ class PaddleOCREngine:
                 continue
         if self._ocr is None:
             raise RuntimeError(f"could not construct PaddleOCR ({last_err})")
+
+        # Warm up on the MAIN thread with a tiny dummy frame: pays first-call
+        # latency upfront and makes any inference crash deterministic here rather
+        # than mid-stream in the OCR worker thread.
+        try:
+            self.read(np.zeros((64, 192, 3), dtype=np.uint8))
+        except Exception:
+            pass
 
     def _infer(self, bgr: np.ndarray):
         # 3.x prefers .predict(img); 2.x uses .ocr(img). Try both, catch broadly.
