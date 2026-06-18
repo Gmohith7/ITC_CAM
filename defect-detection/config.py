@@ -30,6 +30,12 @@ ANALOGUE_GAIN = os.getenv("ANALOGUE_GAIN", "")
 # ISP brightness shift, -1.0 .. 1.0 (0 = default). Empty = default.
 BRIGHTNESS = os.getenv("BRIGHTNESS", "")
 
+# --- OCR engine ---
+# "tesseract" (default; fast, needs clean binary) or "paddle" (PaddleOCR;
+# far more accurate on low-contrast/embossed print, runs on-device, slower).
+# Install paddle with: pip install paddlepaddle paddleocr
+OCR_ENGINE = os.getenv("OCR_ENGINE", "tesseract").lower()
+
 # --- Tesseract OCR ---
 # On Linux/Pi, tesseract is found via PATH automatically.
 # On Windows, set TESSERACT_CMD in .env if not in a standard location.

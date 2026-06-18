@@ -375,9 +375,9 @@ def _startup_diagnostics() -> None:
     except Exception:
         commit = "unknown"
 
-    print(f"[Detector] code commit={commit} | threshold={_THRESHOLD} | "
-          f"frame_psms={_OCR_PSMS_FRAME} frame_max_vars={_FRAME_MAX_VARS} "
-          f"crop_psms={_OCR_PSMS_CROP}")
+    print(f"[Detector] code commit={commit} | engine={config.OCR_ENGINE} | "
+          f"threshold={_THRESHOLD} | frame_psms={_OCR_PSMS_FRAME} "
+          f"frame_max_vars={_FRAME_MAX_VARS} crop_psms={_OCR_PSMS_CROP}")
     print(f"[Detector] config: WHITE_THRESHOLD={config.WHITE_THRESHOLD} "
           f"OCR_MIN_HEIGHT={config.OCR_MIN_HEIGHT} "
           f"DARK_FRAME_THRESHOLD={config.DARK_FRAME_THRESHOLD} "
@@ -458,9 +458,29 @@ class BatchCodeDetector:
     """
 
     def __init__(self):
-        self._tesseract_ok = self._init_tesseract()
         self._frame_n = 0
+        self._paddle = None
+        self._tesseract_ok = False
+
+        # PaddleOCR is the accurate on-device path; Tesseract is the fast default
+        # and the fallback if Paddle is requested but unavailable.
+        if config.OCR_ENGINE == "paddle":
+            self._paddle = self._init_paddle()
+        if self._paddle is None:
+            self._tesseract_ok = self._init_tesseract()
+
         _startup_diagnostics()
+
+    def _init_paddle(self):
+        try:
+            from model.ocr_engines import PaddleOCREngine
+            eng = PaddleOCREngine()
+            print("[Detector] PaddleOCR engine ready.")
+            return eng
+        except Exception as e:
+            print(f"[Detector] PaddleOCR unavailable ({e}); falling back to Tesseract. "
+                  f"Install with: pip install paddlepaddle paddleocr")
+            return None
 
     def _init_tesseract(self) -> bool:
         try:
@@ -477,25 +497,55 @@ class BatchCodeDetector:
 
     def predict(self, frame_rgb: np.ndarray) -> tuple:
         """
-        Two-stage batch code detection on `frame_rgb` (H×W×3 RGB uint8).
-        Without Tesseract, always returns DEFECT — never a false positive.
-
-        Stage 1 — Full-frame OCR at two resolutions (PSM 11, 4 variants each):
-          • Full resolution (e.g. 1920×1080): label keywords ("Batch No.:",
-            "PKD.:") land at ~25 px — Tesseract's viable lower floor.
-          • 1280 px max-dim: date/batch-code values land at ~17 px — useful
-            when the product fills only part of the frame.
-          Adaptive preprocessing skipped (too slow on Pi); exits as soon as
-          either scale clears the threshold.  Total: ≤16 Tesseract calls.
-
-        Stage 2 — Region crop OCR:
-          Fallback for white-sticker packaging.  Each detected region is
-          cropped and re-OCR'd at higher relative resolution using all
-          PSM modes and all 6 preprocessing variants.
+        Batch code detection on `frame_rgb` (H×W×3 RGB uint8). Dispatches to the
+        active OCR engine. With no working engine, always returns DEFECT — never
+        a false positive.
         """
+        if self._paddle is not None:
+            return self._predict_paddle(frame_rgb)
         if not self._tesseract_ok:
-            return "DEFECT", 0.0, True, [], "OCR unavailable — install Tesseract"
+            return "DEFECT", 0.0, True, [], "OCR unavailable — install an OCR engine"
+        return self._predict_tesseract(frame_rgb)
 
+    def _predict_paddle(self, frame_rgb: np.ndarray) -> tuple:
+        """
+        Single-pass detection with PaddleOCR — it detects + recognises text on
+        the raw frame, so no binarisation/PSM sweep is needed. Recognised text
+        is scored by the same evidence gate as Tesseract.
+        """
+        self._frame_n += 1
+        h_img, w_img = frame_rgb.shape[:2]
+        brightness, sharpness = _frame_quality(_to_gray(frame_rgb))
+        if config.OCR_DEBUG:
+            _print_frame_header(self._frame_n, w_img, h_img, brightness, sharpness)
+
+        text = self._paddle.read(frame_rgb)
+        ev   = _evaluate(text)
+        if config.OCR_DEBUG:
+            _print_frame_summary(self._frame_n, w_img, h_img, brightness, sharpness,
+                                 "paddle", ev, text)
+        if config.OCR_DEBUG_IMAGES and self._frame_n % config.DEBUG_IMAGE_EVERY == 0:
+            _dump_debug_images(frame_rgb, self._frame_n)
+
+        found = ev.score >= _THRESHOLD
+        return (
+            "OK" if found else "DEFECT",
+            ev.score if found else 0.0,
+            not found,
+            [],
+            text.strip(),
+        )
+
+    def _predict_tesseract(self, frame_rgb: np.ndarray) -> tuple:
+        """
+        Two-stage Tesseract detection.
+
+        Stage 1 — Full-frame OCR (PSM 11, 4 variants), single full-res pass by
+          default (OCR_MULTISCALE adds a 1280px pass). Exits as soon as the
+          threshold is cleared.
+        Stage 2 — Region crop OCR fallback for white-sticker packaging,
+          hard-capped (_STAGE2_MAX_REGIONS) so the no-code path stays responsive.
+        """
         self._frame_n += 1
         h_img, w_img = frame_rgb.shape[:2]
         brightness, sharpness = _frame_quality(_to_gray(frame_rgb))

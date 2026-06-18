@@ -1,1 +1,1 @@
-STAGE2_ENABLED=false OCR_DEBUG=true python -u run.py 2>&1 | tee output.txt
+OCR_ENGINE=paddle OCR_DEBUG=true python -u run.py 2>&1 | tee output.txt
