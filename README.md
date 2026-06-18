@@ -1,6 +1,32 @@
-# Defect Detection System
+# ITC Batch Code Detector
 
-Real-time industrial defect detection running entirely on a **Raspberry Pi 5** with the **Camera Module 3**. Frames are captured, preprocessed, and classified by a quantized MobileNetV2 TFLite model — no cloud dependency.
+Real-time **batch code detection** on ITC packaged-food products, running entirely on a
+**Raspberry Pi 5** with the **Camera Module 3** — no cloud dependency. The camera watches a
+product; the system OCRs the printed batch code block and signals **OK** (code present &
+readable) or **DEFECT** (missing / unreadable) on screen and via a GPIO LED + buzzer.
+
+OCR uses **RapidOCR** (PP-OCR detection + recognition on **onnxruntime**), which is accurate
+on the low-contrast embossed print and reliable on ARM. A strict, block-specific evidence
+gate makes the decision — so ingredient/nutrition text on the pack can never trigger a false
+OK.
+
+---
+
+## What it detects
+
+The ITC batch code block (printed directly on dark cardboard):
+
+```
+Batch No.:   07:04  09A11       ← time + alphanumeric code
+PKD.:        31/05/26            ← packed date
+Use By:      24/02/27            ← expiry date
+MRP Rs. incl. of all taxes/(Rs. per g)
+40.00/(0.58)
+```
+
+A frame scores **OK** only when the block's signature is present: **two dates (PKD + Use By)
+plus a corroborating signal** (the printed time, the alphanumeric code, or a block label).
+Threshold `0.55`; a full block scores `1.00`.
 
 ---
 
@@ -8,163 +34,97 @@ Real-time industrial defect detection running entirely on a **Raspberry Pi 5** w
 
 | Component | Spec |
 |---|---|
-| SBC | Raspberry Pi 5 (8 GB recommended) |
-| Camera | Raspberry Pi Camera Module 3 (12 MP, Sony IMX708, autofocus) |
-| Storage | MicroSD 32 GB+ (Class 10 / A2) or NVMe via PCIe HAT |
-| Power | Official Pi 5 27 W USB-C PSU |
-| Alerts (optional) | LED + buzzer via GPIO |
+| SBC | Raspberry Pi 5 |
+| Camera | Camera Module 3 (Sony IMX708, autofocus) via CSI |
+| Display | HDMI monitor for the live preview |
+| Alerts | LED on GPIO 27, buzzer on GPIO 17 (gpiozero + lgpio, RP1 `chip=4`) |
+| Lighting | A **side/raking light** on the code — essential for contrast on embossed print |
 
 ---
 
-## Project Structure
+## Project structure
 
 ```
 defect-detection/
-├── config.py                  # All tunable parameters (reads from .env)
-├── run.py                     # Convenience launcher
-├── requirements.txt           # Core dependencies
-├── requirements-dev.txt       # Dev/test extras
-├── requirements-pi.txt        # Pi 5 runtime instructions
-├── .env                       # Local config (gitignored)
-├── .env.example               # Template for .env
-├── setup/
-│   └── install.sh             # One-shot Pi 5 setup script
-├── camera/
-│   └── capture.py             # picamera2 wrapper (webcam fallback in DEV_MODE)
-├── preprocessing/
-│   └── preprocess.py          # Resize, normalise, annotate frames
+├── run.py                      # Launcher: detection / --dashboard / --headless / --test
+├── config.py                   # All tunable settings (reads from .env)
+├── camera/capture.py           # picamera2 wrapper (Pi 5 BGRX fix, AF, webcam fallback)
 ├── model/
-│   ├── inference.py           # TFLite model loader and runner
-│   └── labels.txt             # Class labels: OK, DEFECT
-├── detection/
-│   └── detector.py            # Main detection loop
-├── alerts/
-│   └── alert.py               # GPIO LED + buzzer (lgpio / RP1 backend)
-├── defect_logging/
-│   └── logger.py              # CSV log + JPEG snapshot per defect
-├── dashboard/
-│   └── app.py                 # Flask live-feed web dashboard
-├── data/
-│   ├── raw/                   # Raw captured frames
-│   ├── annotated/             # Labelled training data (OK/ DEFECT/)
-│   └── results/               # Defect snapshots + detections.csv
-├── training/
-│   ├── train.py               # MobileNetV2 transfer learning (run on PC)
-│   ├── export_tflite.py       # Convert .h5 → quantized .tflite
-│   └── dataset_prep.py        # Organise raw images into train/val split
-└── tests/
-    └── test_pipeline.py       # Unit tests for each module
+│   ├── inference.py            # BatchCodeDetector: RapidOCR + evidence gate
+│   └── ocr_engines.py          # RapidOCREngine (PP-OCR on onnxruntime)
+├── preprocessing/preprocess.py # HUD overlay (BATCH CODE OK / NO BATCH CODE)
+├── detection/detector.py       # Main loop: display thread + OCR worker thread
+├── alerts/alert.py             # Non-blocking GPIO LED + buzzer
+├── defect_logging/logger.py    # CSV log + JPEG snapshot per defect
+├── dashboard/app.py            # Flask MJPEG stream + /status endpoint
+├── tools/
+│   ├── focus_meter.py          # Live focus/exposure meter (+ --sweep for manual focus)
+│   ├── ocr_image.py            # Run the full pipeline on one saved frame (no camera)
+│   ├── ocr_report.py           # Batch-test the OCR on test_images/
+│   └── diagnose_camera.py      # Camera format diagnostic
+└── tests/                      # pytest unit + real-image tests
 ```
 
 ---
 
-## Quickstart
-
-### On a dev machine (Windows / Mac / Linux)
+## Quickstart (Raspberry Pi 5)
 
 ```bash
-cd defect-detection
-
-# Activate the venv (already created with all deps installed)
-# Windows:
-.\venv\Scripts\activate
-# macOS / Linux:
+git clone https://github.com/Gmohith7/ITC_CAM.git
+cd ITC_CAM/defect-detection
+bash setup/install.sh                 # system deps + venv (system-site-packages for picamera2)
 source venv/bin/activate
+pip install rapidocr_onnxruntime      # OCR engine (first run downloads PP-OCR models)
 
-# Run detection loop using your webcam
+# Live detection with HDMI preview:
 python run.py
 
-# Or run the web dashboard at http://localhost:5000
+# Headless (SSH, logs only):
+python run.py --headless
+
+# Web dashboard at http://<pi-ip>:5000 :
 python run.py --dashboard
 
-# Run tests
+# Tests:
 python run.py --test
 ```
 
-`DEV_MODE=true` is set in `.env` by default — the system uses a USB/built-in webcam and a dummy random classifier until you supply a real model.
+`picamera2` is installed system-wide via apt (not pip-installable on Pi 5); the camera module
+injects `/usr/lib/python3/dist-packages` onto `sys.path` so it imports inside the venv.
 
 ---
 
-### On Raspberry Pi 5
+## Dialing it in (do this first)
+
+Frame quality is everything — RapidOCR (or any OCR) returns noise on a blurry/dark frame.
 
 ```bash
-# 1. Clone the repo
-git clone https://github.com/Gmohith7/ITC-cam.git
-cd ITC-cam/defect-detection
+# 1. Add a side light on the code, then find the sharpest focus:
+python tools/focus_meter.py --sweep      # prints the LENS_POSITION to lock in .env
 
-# 2. Run the one-shot installer
-bash setup/install.sh
-
-# 3. Activate the venv
-source venv/bin/activate
-
-# 4. Verify camera
-rpicam-hello --list-cameras
-
-# 5. Set DEV_MODE=false in .env, then run
-python run.py
+# 2. Live-check until sharp >= ~80 and brightness ~50-120:
+python tools/focus_meter.py
 ```
+
+Targets: **sharpness ≥ 80**, **brightness 50–120**. With a side light the rig runs sharp
+250–330. In `OCR_DEBUG=true` runs, the `[FRAME #n] ... FOCUS:OK/SOFT` line is the fastest
+triage — low `sharp` means fix the lens/light, not the code.
 
 ---
 
-## Configuration
-
-All settings live in [config.py](config.py) and are overridable via `.env`:
+## Configuration (`.env`, see `.env.example`)
 
 | Variable | Default | Description |
 |---|---|---|
-| `DEV_MODE` | `false` | `true` = use webcam instead of picamera2 |
-| `DEV_CAMERA_INDEX` | `0` | Webcam index when DEV_MODE is on |
-| `CONFIDENCE_THRESHOLD` | `0.75` | Minimum confidence to flag a defect |
-| `FRAME_RATE` | `10` | Frames per second to process |
+| `DETECTION_THRESHOLD` | `0.55` | Min evidence score to declare a batch code present |
+| `OCR_MAX_SIDE` | `960` | Downscale longest frame side before OCR (lower = faster/less lag) |
+| `AF_MODE` | `continuous` | `continuous` or `manual` (+ `LENS_POSITION`) for a fixed station |
+| `AF_RANGE` | `macro` | AF search range for close-up inspection |
+| `DARK_FRAME_THRESHOLD` | `8.0` | Skip frames darker than this (camera warming up) |
+| `EXPOSURE_TIME` / `ANALOGUE_GAIN` / `BRIGHTNESS` | auto | Optional manual exposure for dim stations |
+| `OCR_DEBUG` | `false` | Print per-frame OCR result + focus/evidence diagnostics |
 | `FLASK_PORT` | `5000` | Dashboard port |
-| `GPIO_LED_PIN` | `27` | BCM pin for defect LED |
-| `GPIO_BUZZER_PIN` | `17` | BCM pin for defect buzzer |
-
-Copy `.env.example` to `.env` and adjust for your setup.
-
----
-
-## Model
-
-The system uses a **MobileNetV2** classifier trained with TensorFlow and exported to **TFLite (int8 quantized)** for Pi inference.
-
-| Model | Inference (Pi 5) | FPS |
-|---|---|---|
-| MobileNetV2 float32 | ~120 ms | ~8 |
-| MobileNetV2 int8 quantized | ~60 ms | ~15 |
-| EfficientNet-Lite0 int8 | ~45 ms | ~20 |
-
-### Train your own model (on PC / Google Colab)
-
-```bash
-# 1. Collect and label images into data/annotated/OK/ and data/annotated/DEFECT/
-
-# 2. (Optional) organise a raw dump into the folder structure
-python training/dataset_prep.py --raw data/raw --out data/annotated --label OK
-
-# 3. Train
-python training/train.py --data data/annotated --epochs 20 --output trained_model.h5
-
-# 4. Export to TFLite
-python training/export_tflite.py --model trained_model.h5 --output model/model.tflite
-
-# 5. Copy model/model.tflite to the Pi
-```
-
-Until a real model is present, inference runs in **dummy mode** (random outputs) so the rest of the pipeline can still be developed and tested.
-
----
-
-## GPIO Wiring (Pi 5)
-
-| Component | BCM Pin | Physical Pin |
-|---|---|---|
-| LED (anode via 330Ω) | GPIO 27 | Pin 13 |
-| Buzzer (+) | GPIO 17 | Pin 11 |
-| GND | GND | Pin 6 |
-
-The alert system uses **gpiozero with the lgpio backend** (`chip=4`, RP1). `RPi.GPIO` is not used — it is incompatible with the Pi 5's RP1 I/O chip.
+| `GPIO_LED_PIN` / `GPIO_BUZZER_PIN` | `27` / `17` | Alert pins |
 
 ---
 
@@ -172,25 +132,27 @@ The alert system uses **gpiozero with the lgpio backend** (`chip=4`, RP1). `RPi.
 
 | Package | Used for |
 |---|---|
+| `rapidocr_onnxruntime` | OCR engine (PP-OCR detection + recognition on onnxruntime) |
 | `numpy` | Array ops throughout the pipeline |
 | `opencv-python` | Frame resize, colour convert, display, JPEG encode |
 | `Pillow` | Image I/O utilities |
 | `flask` | Web dashboard |
 | `python-dotenv` | `.env` loading |
-| `tflite-runtime` | TFLite inference on Pi (PyPI, not apt) |
-| `gpiozero` | GPIO LED + buzzer control |
-| `picamera2` | Camera capture on Pi (via apt) |
+| `gpiozero` | GPIO LED + buzzer (lgpio / RP1 backend) |
+| `picamera2` | Camera capture on Pi (apt, system-wide) |
 
-PyTorch and ONNX are not used. TensorFlow is only needed locally to run the training scripts.
+> Tesseract and PaddleOCR were removed: Tesseract was too weak on the embossed dark-cardboard
+> print, and paddlepaddle's native inference segfaults on Pi 5 / ARM / Python 3.13. RapidOCR
+> (onnxruntime) replaced both.
 
 ---
 
-## Running Tests
+## Tests
 
 ```bash
 python run.py --test
-# or directly:
-pytest tests/ -v
+# or:  pytest tests/ -v
 ```
 
-All 7 tests run on any machine without a camera, GPIO, or model file.
+33 unit tests run on any machine without a camera, GPIO, or OCR engine. The real-image tests
+skip automatically when RapidOCR is not installed.
