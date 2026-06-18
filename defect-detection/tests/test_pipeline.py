@@ -73,10 +73,19 @@ def test_score_keyword_alone_is_zero():
     assert _score_text("PKD") == 0.0
 
 
-def test_score_keyword_plus_date_passes():
-    """Keyword + date is the minimum passing combination."""
+def test_score_keyword_plus_two_dates_passes():
+    """Keyword + the block's two dates (PKD + Use By) is a passing combination."""
     from model.inference import _score_text
-    assert _score_text("Batch No.\n28/09/25") >= 0.55
+    assert _score_text("Batch No.\n28/09/25\n24/06/26") >= 0.55
+
+
+def test_score_keyword_plus_single_date_is_zero():
+    """Only the batch block matters: a label + ONE date is not enough — the real
+    block always prints both PKD and Use By dates. Guards against false OK on a
+    stray date elsewhere on the pack."""
+    from model.inference import _score_text
+    assert _score_text("Batch No.\n28/09/25") == 0.0
+    assert _score_text("MRP 24/02/27") == 0.0
 
 
 def test_score_full_itc_block_high():
@@ -98,21 +107,21 @@ def test_score_random_text_is_zero():
 
 
 def test_score_garbled_date_slash_as_nine():
-    """'/' read as '9' by Tesseract on dark cardboard: 24/02/27 -> 24902127."""
+    """'/' read as '9' on dark cardboard: 24/02/27 -> 24902127 still matches."""
     from model.inference import _score_text
-    assert _score_text("PKD 24902127") >= 0.55
+    assert _score_text("PKD 24902127\n31105126") >= 0.55
 
 
 def test_score_garbled_date_slash_as_one():
-    """'/' read as '1' by Tesseract: 31/05/26 -> 31105126."""
+    """'/' read as '1': 31/05/26 -> 31105126 still matches."""
     from model.inference import _score_text
-    assert _score_text("PKD 31105126") >= 0.55
+    assert _score_text("PKD 31105126\n24902127") >= 0.55
 
 
-def test_score_mrp_keyword_plus_date_passes():
-    """'mrp' is accepted as a keyword fallback when labels are garbled."""
+def test_score_mrp_keyword_plus_two_dates_passes():
+    """'mrp' is accepted as a block keyword; needs the block's two dates."""
     from model.inference import _score_text
-    assert _score_text("MRP 24/02/27") >= 0.55
+    assert _score_text("MRP 24/02/27\n31/05/26") >= 0.55
 
 
 def test_score_mrp_alone_is_zero():
@@ -128,9 +137,9 @@ def test_score_date_alone_with_relaxed_regex_still_zero():
 
 
 def test_score_garbled_date_slash_as_four():
-    """'/' read as '4' by Tesseract: 31/08/26 -> 31408126."""
+    """'/' read as '4': 31/08/26 -> 31408126 still matches."""
     from model.inference import _score_text
-    assert _score_text("PKD 31408126") >= 0.55
+    assert _score_text("PKD 31408126\n24102127") >= 0.55
 
 
 def test_score_time_plus_two_dates_no_keyword():

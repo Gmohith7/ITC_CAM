@@ -101,9 +101,16 @@ def _evaluate(text: str) -> "_Evidence":
     has_time    = bool(time_m)
     n_dates     = len(dates)
 
-    if (has_keyword and n_dates >= 1) or (has_time and n_dates >= 2):
+    # We care ONLY about the ITC batch code block, which ALWAYS carries two
+    # dates (PKD + Use By). Require both dates as the backbone, plus one
+    # corroborating block signal — printed time (HH:MM), the alphanumeric batch
+    # code, or a block label (Batch No./PKD/Use By/MRP). This locks detection
+    # onto the batch block: stray text elsewhere on the pack (ingredients, a
+    # lone date or MRP line) can never trigger a false OK.
+    is_block = n_dates >= 2 and (has_time or has_batch or has_keyword)
+    if is_block:
         score = 0.40                           # base
-        score += 0.20 * min(n_dates, 2)        # up to +0.40 for PKD + Use By
+        score += 0.20 * min(n_dates, 2)        # +0.40 for PKD + Use By
         if has_time:
             score += 0.10
         if has_batch:

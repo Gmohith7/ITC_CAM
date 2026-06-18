@@ -13,7 +13,9 @@
       "Bash(git push *)",
       "Bash(git pull *)",
       "Bash(python -c \"import config, model.inference, model.ocr_engines; print\\('imports OK; engine=', config.OCR_ENGINE\\)\")",
-      "Bash(python -m pytest tests/test_pipeline.py -q)"
+      "Bash(python -m pytest tests/test_pipeline.py -q)",
+      "Bash(python -m pytest defect-detection/tests/test_pipeline.py -q)",
+      "Bash(git commit -q -m ' *)"
     ]
   }
 }

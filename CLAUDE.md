@@ -97,21 +97,22 @@ MRP Rs. incl. of all taxes/(Rs. per g)
 NN.NN/(N.NN)
 ```
 
-### Scoring (AND-gate — two valid paths)
-**Path A** (label text readable): keyword + at least one date
-**Path B** (label text garbled, dark cardboard): printed time (HH:MM) + at least two dates
+### Scoring (block-specific gate)
+We care ONLY about the batch code block, which ALWAYS prints **two dates**
+(PKD + Use By). The gate requires **≥2 dates AND one corroborating block signal**
+(printed time HH:MM, the alphanumeric batch code, or a block label). This locks
+detection onto the batch block — stray text elsewhere on the pack (ingredients,
+a lone date or MRP line) can never trigger a false OK.
 
 | Evidence | Score |
 |----------|-------|
-| keyword alone | 0.0 (hard gate) |
-| date alone | 0.0 (hard gate) |
-| time + 1 date alone | 0.0 (hard gate — too ambiguous) |
-| keyword + date (minimum) | 0.60 |
-| time + 2 dates (no keyword needed) | 0.90 |
-| + second date (PKD + Use By) | 0.80 |
+| anything with < 2 dates | 0.0 (hard gate) |
+| 2 dates with no time/code/label | 0.0 (hard gate — needs a corroborator) |
+| 2 dates + (keyword OR code) | 0.80 |
 | + time HH:MM | +0.10 |
 | + alphanumeric batch code | +0.10 |
 | + MRP price line | +0.10 |
+| full block (2 dates + time + code) | 1.00 |
 
 Threshold: **0.55** (set in config / `.env` as `DETECTION_THRESHOLD`).
 
