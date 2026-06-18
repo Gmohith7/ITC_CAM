@@ -1,19 +1,19 @@
-.venv) mohith@mohith:~/Desktop/ITC_CAM/defect-detection $ OCR_DEBUG=true python -u run.py 2>&1 | tee output.txt
-[0:34:09.686505831] [32389]  INFO Camera camera_manager.cpp:340 libcamera v0.7.1+rpt20260609
-[0:34:09.696522048] [32399]  INFO RPI pisp.cpp:720 libpisp version v1.5.0 01-05-2026 (05:33:53)
-[0:34:09.712197977] [32399]  INFO IPAProxy ipa_proxy.cpp:184 Using tuning file /usr/share/libcamera/ipa/rpi/pisp/imx708.json
-[0:34:09.721238928] [32399]  INFO Camera camera_manager.cpp:223 Adding camera '/base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a' for pipeline handler rpi/pisp
-[0:34:09.721292686] [32399]  INFO RPI pisp.cpp:1181 Registered camera /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a to CFE device /dev/media1 and ISP device /dev/media2 using PiSP variant BCM2712_D0
-[0:34:09.727502855] [32389]  INFO Camera camera.cpp:1216 configuring streams: (0) 1920x1080-XRGB8888/Rec709/Rec709/None/Full (1) 2304x1296-BGGR_PISP_COMP1/RAW
-[0:34:09.727772130] [32399]  INFO RPI pisp.cpp:1485 Sensor: /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a - Selected sensor format: 2304x1296-SBGGR10_1X10/RAW - Selected CFE format: 2304x1296-PC1B/RAW
+[0:41:25.864822648] [33077]  INFO Camera camera_manager.cpp:340 libcamera v0.7.1+rpt20260609
+[0:41:25.885824927] [33088]  INFO RPI pisp.cpp:720 libpisp version v1.5.0 01-05-2026 (05:33:53)
+[0:41:25.899582753] [33088]  INFO IPAProxy ipa_proxy.cpp:184 Using tuning file /usr/share/libcamera/ipa/rpi/pisp/imx708.json
+[0:41:25.911556814] [33088]  INFO Camera camera_manager.cpp:223 Adding camera '/base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a' for pipeline handler rpi/pisp
+[0:41:25.912941325] [33088]  INFO RPI pisp.cpp:1181 Registered camera /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a to CFE device /dev/media1 and ISP device /dev/media2 using PiSP variant BCM2712_D0
+[0:41:25.925549500] [33077]  INFO Camera camera.cpp:1216 configuring streams: (0) 1920x1080-XRGB8888/Rec709/Rec709/None/Full (1) 2304x1296-BGGR_PISP_COMP1/RAW
+[0:41:25.926549405] [33088]  INFO RPI pisp.cpp:1485 Sensor: /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a - Selected sensor format: 2304x1296-SBGGR10_1X10/RAW - Selected CFE format: 2304x1296-PC1B/RAW
 [Camera] picamera2 initialised (XRGB8888) at 30 fps.
 [Camera] Continuous autofocus enabled.
 [Camera] AF speed=fast, range=macro.
 [Detector] Tesseract OCR ready.
-[Detector] code commit=37f55ab+dirty | threshold=0.55 | frame_psms=(11,) frame_max_vars=4 crop_psms=(6, 11, 4, 3)
+[Detector] code commit=c29134f+dirty | threshold=0.55 | frame_psms=(11,) frame_max_vars=4 crop_psms=(6, 11, 4, 3)
 [Detector] config: WHITE_THRESHOLD=185 OCR_MIN_HEIGHT=140 DARK_FRAME_THRESHOLD=8.0 FOCUS_MIN_SHARPNESS=60.0 OCR_DEBUG=True OCR_DEBUG_IMAGES=False
 [Alert] GPIO initialised (lgpio / RP1).
 [Detector] Starting. Press 'q' or Ctrl+C to stop.
+[FRAME #1] 1920x1080 bright=37.4 sharp=34 FOCUS:SOFT — OCR passes follow
 QFontDatabase: Cannot find font directory /home/mohith/Desktop/ITC_CAM/.venv/lib/python3.13/site-packages/cv2/qt/fonts.
 Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
 QFontDatabase: Cannot find font directory /home/mohith/Desktop/ITC_CAM/.venv/lib/python3.13/site-packages/cv2/qt/fonts.
@@ -24,17 +24,35 @@ QFontDatabase: Cannot find font directory /home/mohith/Desktop/ITC_CAM/.venv/lib
 Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
 QFontDatabase: Cannot find font directory /home/mohith/Desktop/ITC_CAM/.venv/lib/python3.13/site-packages/cv2/qt/fonts.
 Note that Qt no longer ships fonts. Deploy some (from https://dejavu-fonts.github.io/ for example) or switch to fontconfig.
-[OCR] g=0 v=0 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'at; er +8 1 Oe ~ © t¢ J t te,'
-[OCR] g=0 v=1 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'at; er +8 1 Oar ~ # t¢ t te,'
-[OCR] g=0 v=2 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '4, are. »el by iA pew «(fh Som #+.% fess Seed i | ne’ ad ed LTTE'
-[OCR] g=0 v=3 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '4, are. ae hw yh pemenp «(fh Som #+.% fess Seed i | ae’ al ed LATTE'
-[OCR] g=1 v=0 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'D> 8 & PMB ivy wee A OQ § Ogre > « » 6 ‘tt 8@ et t¢ #¢g oO.'
-[OCR] g=1 v=1 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'D> 8 & CMB ivy wemwne OQ §£ Og > « » 6 ‘t 8@ et BE #¢g oO:'
-[OCR] g=1 v=2 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'a a a <aee % nee 6 adsute Gam 47% E } Polak |'
-[OCR] g=1 v=3 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'a ae a ene mS eee 63 adsuke Can 47% E } Polak |'
-[OCR] g=0 v=0 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'e-eavense +8 £{ Gar. a 4 13 t te.'
-[OCR] g=0 v=1 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'ditties +8 £{ © a-- a 4 13 t te.'
-[OCR] g=0 v=2 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'ag wontie ae at tase oom sar | se" */5/2/-12/; ee'
-[OCR] g=0 v=3 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'ag wontie ae at tase oom cart | SS */5/2/°12/; eae'
-[OCR] g=1 v=0 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '—_ « PMB sy +* #8 Ogee >« a ¢ 9 ‘ 6 bs s aa'
-[OCR] g=1 v=1 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '—_ « PMB sy +* #8 OG ee >« i ¢ 9 ‘ 6 bs s aa'
+[OCR] g=0 v=0 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'pi eo sa kd 4 Rhee: al ow re Ti a | eg a, ee & = *% VUift{). rows }'
+[OCR] g=0 v=1 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'pi a sd kd 4 Rien: al ow 8 iy a | ey ae ee & = *% YUi{tf{). rows }'
+[OCR] g=0 v=2 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'Sad ae Cae ay Pgs 2g Se ¥ isa ot ea ee or po Pi: Fe te ae co ee a ri or ae Li “f We % My L'
+[OCR] g=0 v=3 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'Saad ae Cae ay Pgs 2g Se ¥ iia ot ea fe or eo Pi: ie tel: ae co ee a ri or ae Li “f Ve % M'
+[OCR] g=1 v=0 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'wy ts a f & ie > ee'
+[OCR] g=1 v=1 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'wy ts a f & 2» fj *. > nr'
+[OCR] g=1 v=2 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'y ark ois, Lit. “/s'
+[OCR] g=1 v=3 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'y are ois, Yip “/s'
+[OCR] g=0 v=0 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'Pl “/s fle if; £/2#'
+[OCR] g=0 v=1 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'ee “/s le fs £/#'
+[OCR] g=0 v=2 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'py aed te. * Oy se th wn Gf cra bom Cy Oy'
+[OCR] g=0 v=3 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'py aed te. * Oy se th wn fj cra om Cy Oy'
+[OCR] g=1 v=0 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'ied i ae */ +6 Sf i & & Wy'
+[OCR] g=1 v=1 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'iad i ae */ 706 oe i & & Wy;'
+[OCR] g=1 v=2 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'EVA, ———* aay, we ee eg, Lr]'
+[OCR] g=1 v=3 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'FVAr, ~— any, we Le ea, Oe,'
+[OCR] g=0 v=0 psm=6 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'Po i: ie fe i vs a as oe a o/s, ‘ipa f > ww f F , ieee.” Ag & #/'
+[OCR] g=0 v=0 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'ers a ed Vy “e £'
+[OCR] g=0 v=0 psm=4 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '(empty)'
+[OCR] g=0 v=0 psm=3 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '(empty)'
+[OCR] g=0 v=1 psm=6 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'Po ie 1 NE ee fv = en le Pie oe a o/s, ‘tian f_> ww fF , ieee.” Hg & #/'
+[OCR] g=0 v=1 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'ies, a ed Vy “e £'
+[OCR] g=0 v=1 psm=4 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '(empty)'
+[OCR] g=0 v=1 psm=3 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '(empty)'
+[OCR] g=0 v=2 psm=6 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'I Oy es “eat ig a * iA ene > - one Py Bey &'
+[OCR] g=0 v=2 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'C7 <7 W: Ne te pe Ma'
+[OCR] g=0 v=2 psm=4 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '(empty)'
+[OCR] g=0 v=2 psm=3 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '(empty)'
+[OCR] g=0 v=3 psm=6 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'ee Oye s S “ety ig a * iA ene > - Senne PSY Bey &'
+[OCR] g=0 v=3 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'C7 FS W: io Pe, te pre Ma'
+[OCR] g=0 v=3 psm=4 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '(empty)'
+[OCR] g=0 v=3 psm=3 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '(empty)'
