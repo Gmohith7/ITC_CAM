@@ -22,6 +22,7 @@ The region-only fallback (no Tesseract) always returns DEFECT.
 
 import re
 import os
+import time
 import shutil
 import platform
 import subprocess
@@ -404,7 +405,8 @@ def _print_frame_header(frame_n, w, h, brightness, sharpness) -> None:
 
 
 def _print_frame_summary(frame_n, w, h, brightness, sharpness, stage,
-                         ev: "_Evidence", text: str, n_regions=None) -> None:
+                         ev: "_Evidence", text: str, n_regions=None,
+                         ocr_ms=None) -> None:
     """
     One consolidated line per processed frame — the headline diagnostic.
 
@@ -416,9 +418,10 @@ def _print_frame_summary(frame_n, w, h, brightness, sharpness, stage,
     focus   = "OK" if sharpness >= config.FOCUS_MIN_SHARPNESS else "SOFT"
     dates_s = ",".join(ev.dates[:3]) if ev.dates else "-"
     reg     = f" regions={n_regions}" if n_regions is not None else ""
+    ms      = f" ocr_ms={ocr_ms:.0f}" if ocr_ms is not None else ""
     preview = " ".join(text.split())[:120] or "(no text)"
     print(f"[FRAME #{frame_n}] {w}x{h} bright={brightness:.1f} sharp={sharpness:.0f} "
-          f"FOCUS:{focus} | stage={stage}{reg} score={ev.score:.2f} | "
+          f"FOCUS:{focus} | stage={stage}{reg}{ms} score={ev.score:.2f} | "
           f"kw={int(ev.has_keyword)} time={ev.time or '-'} "
           f"dates={ev.n_dates}[{dates_s}] batch={int(ev.has_batch)} "
           f"mrp={int(ev.has_mrp)} | best={preview!r}")
@@ -539,11 +542,22 @@ class BatchCodeDetector:
         if config.OCR_DEBUG:
             _print_frame_header(self._frame_n, w_img, h_img, brightness, sharpness)
 
-        text = self._engine.read(frame_rgb)
-        ev   = _evaluate(text)
+        # Downscale before inference: fewer/smaller text boxes → much faster →
+        # lower lag. Large batch digits stay readable at the reduced size.
+        ocr_frame = frame_rgb
+        longest = max(h_img, w_img)
+        if config.OCR_MAX_SIDE and longest > config.OCR_MAX_SIDE:
+            s = config.OCR_MAX_SIDE / longest
+            ocr_frame = cv2.resize(frame_rgb, (int(w_img * s), int(h_img * s)),
+                                   interpolation=cv2.INTER_AREA)
+
+        t0 = time.monotonic()
+        text = self._engine.read(ocr_frame)
+        ocr_ms = (time.monotonic() - t0) * 1000.0
+        ev = _evaluate(text)
         if config.OCR_DEBUG:
             _print_frame_summary(self._frame_n, w_img, h_img, brightness, sharpness,
-                                 config.OCR_ENGINE, ev, text)
+                                 config.OCR_ENGINE, ev, text, ocr_ms=ocr_ms)
         if config.OCR_DEBUG_IMAGES and self._frame_n % config.DEBUG_IMAGE_EVERY == 0:
             _dump_debug_images(frame_rgb, self._frame_n)
 

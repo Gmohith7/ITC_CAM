@@ -37,6 +37,10 @@ BRIGHTNESS = os.getenv("BRIGHTNESS", "")
 #   "paddle"    (PaddleOCR; accurate but paddlepaddle native inference can
 #               segfault on Pi 5 / ARM / Python 3.13) install: pip install paddlepaddle paddleocr
 OCR_ENGINE = os.getenv("OCR_ENGINE", "tesseract").lower()
+# Neural OCR (paddle/rapidocr): downscale the frame so its longest side is at
+# most this many px before inference. Fewer/smaller text boxes = much faster
+# (lower lag), and the large batch-code digits stay readable. 0 = no downscale.
+OCR_MAX_SIDE = int(os.getenv("OCR_MAX_SIDE", "960"))
 
 # --- Tesseract OCR ---
 # On Linux/Pi, tesseract is found via PATH automatically.
