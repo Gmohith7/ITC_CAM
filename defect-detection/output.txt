@@ -1,50 +1,17 @@
-[1:23:51.869346624] [35471]  INFO Camera camera_manager.cpp:340 libcamera v0.7.1+rpt20260609
-[1:23:51.879394871] [35481]  INFO RPI pisp.cpp:720 libpisp version v1.5.0 01-05-2026 (05:33:53)
-[1:23:51.890523822] [35481]  INFO IPAProxy ipa_proxy.cpp:184 Using tuning file /usr/share/libcamera/ipa/rpi/pisp/imx708.json
-[1:23:51.900215327] [35481]  INFO Camera camera_manager.cpp:223 Adding camera '/base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a' for pipeline handler rpi/pisp
-[1:23:51.900243420] [35481]  INFO RPI pisp.cpp:1181 Registered camera /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a to CFE device /dev/media1 and ISP device /dev/media2 using PiSP variant BCM2712_D0
-[1:23:51.904886849] [35471]  INFO Camera camera.cpp:1216 configuring streams: (0) 1920x1080-XRGB8888/Rec709/Rec709/None/Full (1) 2304x1296-BGGR_PISP_COMP1/RAW
-[1:23:51.905122812] [35481]  INFO RPI pisp.cpp:1485 Sensor: /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a - Selected sensor format: 2304x1296-SBGGR10_1X10/RAW - Selected CFE format: 2304x1296-PC1B/RAW
+[1:37:03.265478911] [36880]  INFO Camera camera_manager.cpp:340 libcamera v0.7.1+rpt20260609
+[1:37:03.286477263] [36887]  INFO RPI pisp.cpp:720 libpisp version v1.5.0 01-05-2026 (05:33:53)
+[1:37:03.303458674] [36887]  INFO IPAProxy ipa_proxy.cpp:184 Using tuning file /usr/share/libcamera/ipa/rpi/pisp/imx708.json
+[1:37:03.315165715] [36887]  INFO Camera camera_manager.cpp:223 Adding camera '/base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a' for pipeline handler rpi/pisp
+[1:37:03.315203549] [36887]  INFO RPI pisp.cpp:1181 Registered camera /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a to CFE device /dev/media1 and ISP device /dev/media2 using PiSP variant BCM2712_D0
+[1:37:03.329611692] [36880]  INFO Camera camera.cpp:1216 configuring streams: (0) 1920x1080-XRGB8888/Rec709/Rec709/None/Full (1) 2304x1296-BGGR_PISP_COMP1/RAW
+[1:37:03.329858452] [36887]  INFO RPI pisp.cpp:1485 Sensor: /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a - Selected sensor format: 2304x1296-SBGGR10_1X10/RAW - Selected CFE format: 2304x1296-PC1B/RAW
 [Camera] picamera2 initialised (XRGB8888) at 30 fps.
 [Camera] Continuous autofocus enabled.
 [Camera] AF speed=fast, range=macro.
+[Detector] PaddleOCR unavailable (cannot import name 'Sentinel' from 'typing_extensions' (/usr/lib/python3/dist-packages/typing_extensions.py)); falling back to Tesseract. Install with: pip install paddlepaddle paddleocr
 [Detector] Tesseract OCR ready.
-[Detector] code commit=48b1fa6+dirty | threshold=0.55 | frame_psms=(11,) frame_max_vars=4 crop_psms=(11, 6)
+[Detector] code commit=5c6ab70+dirty | engine=paddle | threshold=0.55 | frame_psms=(11,) frame_max_vars=4 crop_psms=(11, 6)
 [Detector] config: WHITE_THRESHOLD=185 OCR_MIN_HEIGHT=140 DARK_FRAME_THRESHOLD=8.0 FOCUS_MIN_SHARPNESS=60.0 OCR_DEBUG=True OCR_DEBUG_IMAGES=False
 [Alert] GPIO initialised (lgpio / RP1).
 [Detector] Starting. Press 'q' or Ctrl+C to stop.
-[FRAME #1] 1920x1080 bright=96.8 sharp=47 FOCUS:SOFT — OCR passes follow
-[OCR] g=0 v=0 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'eye] rd t « ie t 2» ot 04 eam Tor 2 py ) 4 “ep 9 PoP t q, = *% Oes8 ball ba dood 2 é . a'
-[OCR] g=0 v=1 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'wane rd t « Oe t » ot 04 eam or Bp ) 4 “ep 9 PoP t q, = #% es8 all ba dood 2 é Ss a'
-[OCR] g=0 v=2 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'o/s vA PKS f° ec Meher Ana wésete” x | See. Weds Hi Mtg of/™~] i CL , 7 ® yf / “/ |'
-[OCR] g=0 v=3 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'o/s vA PKS a ee Meher Nnaiy wésete” | seit Meds Hi Meng of/™~] i CL, 7 ® yf / “/ |'
-[OCR] g=1 v=0 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '/ e mY fo /: we oy Fs /: omD> 6 7, wr Ld » O46 ean wemmewws PAN 6, ae id 4 # Ey kl 10 Se —'
-[OCR] g=1 v=1 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '/ e mY fo /: we oy Fs /: o> 6 7, er Lea » O64 oan wemewws AN e, ae ‘i 4 # ES kl 10 Se ='
-[OCR] g=1 v=2 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '7. LA PKS “ye Ue, «* om 6 me iad pemewns @anm LYS f e silat x } Wh | fay! é a =a |'
-[OCR] g=1 v=3 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '7. LA PKS “se Ue, «* o> 6a ” ive pemewns Oat LYS f e salad x } Wh | fay! q a a nf'
-[OCR] g=0 v=0 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'nArven cqgpree heigl i bt'
-[OCR] g=0 v=0 psm=6 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'atropine i.'
-[OCR] g=0 v=1 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'nrven cqpree esa i bt'
-[OCR] g=0 v=1 psm=6 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'en aoe .'
-[OCR] g=1 v=0 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '(empty)'
-[OCR] g=1 v=0 psm=6 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '(empty)'
-[OCR] g=1 v=1 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '(empty)'
-[OCR] g=1 v=1 psm=6 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '(empty)'
-[OCR] g=0 v=0 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'és $3 oan'
-[OCR] g=0 v=0 psm=6 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '(empty)'
-[OCR] g=0 v=1 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'és $3 oan'
-[OCR] g=0 v=1 psm=6 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '(empty)'
-[OCR] g=1 v=0 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'eves'
-[OCR] g=1 v=0 psm=6 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '(empty)'
-[OCR] g=1 v=1 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'eyes'
-[OCR] g=1 v=1 psm=6 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '(empty)'
-[OCR] g=0 v=0 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'i I cat od fou ‘hye'
-[OCR] g=0 v=0 psm=6 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '. ‘ ; * Pree cline ° ME a'
-[OCR] g=0 v=1 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | 'i I cata od fou ‘hye'
-[OCR] g=0 v=1 psm=6 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '7 7 % ; * Prt cline oR a'
-[OCR] g=1 v=0 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '+ ve id eer'
-[OCR] g=1 v=0 psm=6 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '‘ hos eo , :'
-[OCR] g=1 v=1 psm=11 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '“+ ve id eer'
-[OCR] g=1 v=1 psm=6 score=0.00 kw=0 t=0 d=0 bc=0 mrp=0 | '‘ hos eo i y :'
-[FRAME #1] 1920x1080 bright=96.8 sharp=47 FOCUS:SOFT | stage=2 regions=3 score=0.00 | kw=0 time=- dates=0[-] batch=0 mrp=0 | best='(no text)'
-[FRAME #2] 1920x1080 bright=87.6 sharp=284 FOCUS:OK — OCR passes follow
+[FRAME #1] 1920x1080 bright=84.3 sharp=280 FOCUS:OK — OCR passes follow
