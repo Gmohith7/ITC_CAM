@@ -1,30 +1,30 @@
-[2:03:18.085194580] [41186]  INFO Camera camera_manager.cpp:340 libcamera v0.7.1+rpt20260609
-[2:03:18.097498994] [41193]  INFO RPI pisp.cpp:720 libpisp version v1.5.0 01-05-2026 (05:33:53)
-[2:03:18.107264818] [41193]  INFO IPAProxy ipa_proxy.cpp:184 Using tuning file /usr/share/libcamera/ipa/rpi/pisp/imx708.json
-[2:03:18.117280734] [41193]  INFO Camera camera_manager.cpp:223 Adding camera '/base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a' for pipeline handler rpi/pisp
-[2:03:18.117327512] [41193]  INFO RPI pisp.cpp:1181 Registered camera /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a to CFE device /dev/media1 and ISP device /dev/media2 using PiSP variant BCM2712_D0
-[2:03:18.122068637] [41186]  INFO Camera camera.cpp:1216 configuring streams: (0) 1920x1080-XRGB8888/Rec709/Rec709/None/Full (1) 2304x1296-BGGR_PISP_COMP1/RAW
-[2:03:18.122301525] [41193]  INFO RPI pisp.cpp:1485 Sensor: /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a - Selected sensor format: 2304x1296-SBGGR10_1X10/RAW - Selected CFE format: 2304x1296-PC1B/RAW
+[2:44:54.890232744] [41863]  INFO Camera camera_manager.cpp:340 libcamera v0.7.1+rpt20260609
+[2:44:54.911694075] [41871]  INFO RPI pisp.cpp:720 libpisp version v1.5.0 01-05-2026 (05:33:53)
+[2:44:54.938415318] [41871]  INFO IPAProxy ipa_proxy.cpp:184 Using tuning file /usr/share/libcamera/ipa/rpi/pisp/imx708.json
+[2:44:54.953769867] [41871]  INFO Camera camera_manager.cpp:223 Adding camera '/base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a' for pipeline handler rpi/pisp
+[2:44:54.953839145] [41871]  INFO RPI pisp.cpp:1181 Registered camera /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a to CFE device /dev/media1 and ISP device /dev/media2 using PiSP variant BCM2712_D0
+[2:44:54.964045652] [41863]  INFO Camera camera.cpp:1216 configuring streams: (0) 1920x1080-XRGB8888/Rec709/Rec709/None/Full (1) 2304x1296-BGGR_PISP_COMP1/RAW
+[2:44:54.964291542] [41871]  INFO RPI pisp.cpp:1485 Sensor: /base/axi/pcie@1000120000/rp1/i2c@88000/imx708@1a - Selected sensor format: 2304x1296-SBGGR10_1X10/RAW - Selected CFE format: 2304x1296-PC1B/RAW
 [Camera] picamera2 initialised (XRGB8888) at 30 fps.
 [Camera] Continuous autofocus enabled.
 [Camera] AF speed=fast, range=macro.
-[0;93m2026-06-18 18:07:31.799003120 [W:onnxruntime:Default, device_discovery.cc:283 GetGpuDevices] Failed to detect devices under "/sys/class/drm/card1": device_discovery.cc:93 ReadFileContents Failed to open file: "/sys/class/drm/card1/device/vendor"[m
-[0;93m2026-06-18 18:07:31.799080990 [W:onnxruntime:Default, device_discovery.cc:283 GetGpuDevices] Failed to detect devices under "/sys/class/drm/card0": device_discovery.cc:93 ReadFileContents Failed to open file: "/sys/class/drm/card0/device/vendor"[m
+[0;93m2026-06-18 18:49:08.691279024 [W:onnxruntime:Default, device_discovery.cc:283 GetGpuDevices] Failed to detect devices under "/sys/class/drm/card1": device_discovery.cc:93 ReadFileContents Failed to open file: "/sys/class/drm/card1/device/vendor"[m
+[0;93m2026-06-18 18:49:08.691331635 [W:onnxruntime:Default, device_discovery.cc:283 GetGpuDevices] Failed to detect devices under "/sys/class/drm/card0": device_discovery.cc:93 ReadFileContents Failed to open file: "/sys/class/drm/card0/device/vendor"[m
 [Detector] RapidOCR (onnxruntime) engine ready.
-[Detector] code commit=4b2d622+dirty | engine=rapidocr | threshold=0.55 | frame_psms=(11,) frame_max_vars=4 crop_psms=(11, 6)
+[Detector] code commit=e3ff2ac+dirty | engine=rapidocr | threshold=0.55 | frame_psms=(11,) frame_max_vars=4 crop_psms=(11, 6)
 [Detector] config: WHITE_THRESHOLD=185 OCR_MIN_HEIGHT=140 DARK_FRAME_THRESHOLD=8.0 FOCUS_MIN_SHARPNESS=60.0 OCR_DEBUG=True OCR_DEBUG_IMAGES=False
 [Alert] GPIO initialised (lgpio / RP1).
 [Detector] Starting. Press 'q' or Ctrl+C to stop.
-[FRAME #1] 1920x1080 bright=77.1 sharp=270 FOCUS:OK — OCR passes follow
-[FRAME #1] 1920x1080 bright=77.1 sharp=270 FOCUS:OK | stage=rapidocr score=1.00 | kw=1 time=07:04 dates=2[31105126,24102/27] batch=1 mrp=0 | best='CHOCOCREME(38.%)(SUGARREFINEDPAMOEINREFINEDPALMILCOCOASOLISEMUFIE RINGSUBSTANCES(CHOCOLATE),ARTIFICIALFLAVOURING FORBRAN'
-[FRAME #2] 1920x1080 bright=77.6 sharp=281 FOCUS:OK — OCR passes follow
-[FRAME #2] 1920x1080 bright=77.6 sharp=281 FOCUS:OK | stage=rapidocr score=0.90 | kw=1 time=- dates=2[31/05/26,24/02/27] batch=1 mrp=0 | best='CHOCOCRME38.0%)UGARREFINEDPALMOEINEFINEDPAMILCOCOASOLISMUIFIE RINGSUBSTANCES(CHOCOLATE),ARTIFICIALFLAVOURING JDENUICAL F'
-[FRAME #3] 1920x1080 bright=77.8 sharp=282 FOCUS:OK — OCR passes follow
-[FRAME #3] 1920x1080 bright=77.8 sharp=282 FOCUS:OK | stage=rapidocr score=0.90 | kw=1 time=- dates=2[31/05126,24/02/27] batch=1 mrp=0 | best='CHOCOCRME38.%)UGAREFINEDALMOEINEFNEDAMLCOCOAOMUFIE RINGSUBSTANCES(CHOCOLATE),ARTIFICIALFLAVOURING FORBRAND OWNER VHEATFL'
-[FRAME #4] 1920x1080 bright=77.6 sharp=291 FOCUS:OK — OCR passes follow
-[FRAME #4] 1920x1080 bright=77.6 sharp=291 FOCUS:OK | stage=rapidocr score=1.00 | kw=1 time=07:04 dates=2[31105126,24102127] batch=1 mrp=0 | best='REME380 SUGRFIDAMEINFNMOOAOSMUFE NGSUBSTANCES(CHOCOLATE),ARTIFICIALFLAVOURING FORBRAND OWNER HYDROGENATEDVEGETABLEOIL,SU'
-[FRAME #5] 1920x1080 bright=77.1 sharp=287 FOCUS:OK — OCR passes follow
-[FRAME #5] 1920x1080 bright=77.1 sharp=287 FOCUS:OK | stage=rapidocr score=0.90 | kw=1 time=- dates=2[31105/26,24/02/27] batch=1 mrp=0 | best='CREME38.0% RFMNMOAUF NGSUBSTANCES(CHOCOLATE),ARTIFICIALFLAVOURING FORBRAND OWNER EATFLOUR) HYDROGENATEDVEGETABLEOILSUGAR'
-[FRAME #6] 1920x1080 bright=85.9 sharp=253 FOCUS:OK — OCR passes follow
-[FRAME #6] 1920x1080 bright=85.9 sharp=253 FOCUS:OK | stage=rapidocr score=0.90 | kw=1 time=- dates=2[31/05126,24102127] batch=1 mrp=0 | best="OWNER'S FOR BRAND ADDRESS,MANUFACTURING AND/OR PACKAGING UNITS 69g FSSAI LICENSE NUMBER COCREME38:%)SUGAREFNEDPAMOEINFIN"
-[FRAME #7] 1920x1080 bright=82.2 sharp=331 FOCUS:OK — OCR passes follow
+[FRAME #1] 1920x1080 bright=63.9 sharp=258 FOCUS:OK — OCR passes follow
+[FRAME #1] 1920x1080 bright=63.9 sharp=258 FOCUS:OK | stage=rapidocr score=0.00 | kw=1 time=- dates=0[-] batch=1 mrp=0 | best='COAMUFI ARTIFICIALFLAVOURING BUTTMIKZ SUGARINVERUP ARTIFICALFLAVOURING EMULSIFIERS STOREINCOOL&DRYPLACE HITE NET WEIGHT:'
+[FRAME #2] 1920x1080 bright=69.1 sharp=271 FOCUS:OK — OCR passes follow
+[FRAME #2] 1920x1080 bright=69.1 sharp=271 FOCUS:OK | stage=rapidocr score=0.00 | kw=1 time=- dates=0[-] batch=1 mrp=0 | best='COCOASOLIDS,EMULSIFIER ARTIFICIALFLAVOURING BUTTER,MILKSOLIDS,IODIZED SUGARINVERSYRUP ARTIFICIALFLAVOURING EMULSIFIERS S'
+[FRAME #3] 1920x1080 bright=80.7 sharp=275 FOCUS:OK — OCR passes follow
+[FRAME #3] 1920x1080 bright=80.7 sharp=275 FOCUS:OK | stage=rapidocr score=1.00 | kw=1 time=07:04 dates=2[31/05126,24102/27] batch=1 mrp=0 | best='INGREDIENS:CHOCOCRME(38.0%)(SUAREFINDAMOEINEFINEDAMILCOCOAOLSMUFIE LECTHIN(FROMSOYABEANI,NATUREIDENTICALFLA VOURINGSUBST'
+[FRAME #4] 1920x1080 bright=82.0 sharp=331 FOCUS:OK — OCR passes follow
+[FRAME #4] 1920x1080 bright=82.0 sharp=331 FOCUS:OK | stage=rapidocr score=0.90 | kw=1 time=- dates=3[31/05126,24102/27,1901725] batch=1 mrp=0 | best='INGREIE:CHOCOCREME(38.%)SUGARREFINEDPALMOLEINEFNEDPAMILCOCOASOISMUSIFIE FOR BRAN LECITHIN(FROMSOYABEAN) NATUREIDENTICALF'
+[FRAME #5] 1920x1080 bright=84.1 sharp=122 FOCUS:OK — OCR passes follow
+[FRAME #5] 1920x1080 bright=84.1 sharp=122 FOCUS:OK | stage=rapidocr score=0.00 | kw=0 time=- dates=0[-] batch=0 mrp=0 | best='NEF WEN卡'
+[FRAME #6] 1920x1080 bright=79.6 sharp=313 FOCUS:OK — OCR passes follow
+[FRAME #6] 1920x1080 bright=79.6 sharp=313 FOCUS:OK | stage=rapidocr score=0.90 | kw=1 time=- dates=2[31105126,24102127] batch=1 mrp=0 | best='FOR BRAND :COORME38%)UGRFNEDMENFNAMCOAMUFI ADDRESS,MANUF IATUREIDENTICALFLAVOURINGSUBSTANCES(CHOCOLATE)ARTIFICIALFLAVOUR'
+[FRAME #7] 1920x1080 bright=80.0 sharp=303 FOCUS:OK — OCR passes follow
